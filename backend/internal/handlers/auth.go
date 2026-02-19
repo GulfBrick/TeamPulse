@@ -77,17 +77,31 @@ func RegisterEmployee(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to hash password"})
 	}
 
-	user := models.User{
-		Email:    req.Email,
-		Password: string(hash),
-		Name:     req.Name,
-		Title:    req.Title,
-		Role:     req.Role,
-		IsActive: true,
-	}
-
-	if err := database.DB.Create(&user).Error; err != nil {
-		return c.JSON(http.StatusConflict, map[string]string{"error": "email already exists"})
+	// Check if a deactivated user with this email already exists
+	var user models.User
+	if err := database.DB.Where("email = ?", req.Email).First(&user).Error; err == nil {
+		if user.IsActive {
+			return c.JSON(http.StatusConflict, map[string]string{"error": "email already exists"})
+		}
+		// Reactivate the deactivated user with new details
+		user.Password = string(hash)
+		user.Name = req.Name
+		user.Title = req.Title
+		user.Role = req.Role
+		user.IsActive = true
+		database.DB.Save(&user)
+	} else {
+		user = models.User{
+			Email:    req.Email,
+			Password: string(hash),
+			Name:     req.Name,
+			Title:    req.Title,
+			Role:     req.Role,
+			IsActive: true,
+		}
+		if err := database.DB.Create(&user).Error; err != nil {
+			return c.JSON(http.StatusConflict, map[string]string{"error": "email already exists"})
+		}
 	}
 
 	// Send welcome email in background (don't block the response)
