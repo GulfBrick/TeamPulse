@@ -44,6 +44,51 @@ const badgeColors = {
   'idle': { bg: '#2d2006', text: '#fbbf24', border: '#4a3500' },
 };
 
+// ─── Logo ─────────────────────────────────────────────────────
+
+export function Logo({ size = 40, glow = false }) {
+  const id = `logo-grad-${size}`;
+  const glowId = `logo-glow-${size}`;
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="50%" stopColor="#3b82f6" />
+          <stop offset="100%" stopColor="#8b5cf6" />
+        </linearGradient>
+        {glow && (
+          <filter id={glowId}>
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        )}
+      </defs>
+      {/* Rounded square background */}
+      <rect x="4" y="4" width="92" height="92" rx="20" fill="#0a0a18" stroke={`url(#${id})`} strokeWidth="2.5" />
+      {/* T letter - top bar */}
+      <rect x="22" y="20" width="56" height="8" rx="4" fill={`url(#${id})`} />
+      {/* T letter - vertical stem */}
+      <rect x="46" y="20" width="8" height="22" rx="2" fill={`url(#${id})`} />
+      {/* Heartbeat pulse line through the middle */}
+      <polyline
+        points="16,58 32,58 38,58 42,42 48,72 54,38 58,65 62,52 66,58 84,58"
+        stroke={`url(#${id})`}
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        filter={glow ? `url(#${glowId})` : undefined}
+      />
+      {/* T letter - bottom of stem below pulse */}
+      <rect x="46" y="68" width="8" height="14" rx="2" fill={`url(#${id})`} />
+    </svg>
+  );
+}
+
 // ─── Components ───────────────────────────────────────────────
 
 export function Badge({ status }) {

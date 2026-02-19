@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Btn, Input, colors } from '../components/UI';
+import { Btn, Input, Logo, colors } from '../components/UI';
 import { api } from '../hooks/api';
 
 export default function LoginPage({ onLogin }) {
@@ -54,15 +54,8 @@ export default function LoginPage({ onLogin }) {
 
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           {/* Logo — big and prominent */}
-          <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
-            <img
-              src="/logo.png"
-              alt="TeamPulse"
-              className="logo-pulse"
-              style={{
-                width: '160px', height: '160px', objectFit: 'contain',
-              }}
-            />
+          <div className="logo-pulse" style={{ display: 'inline-block', marginBottom: '16px' }}>
+            <Logo size={140} glow />
           </div>
           <h1 style={{
             fontSize: '32px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px',

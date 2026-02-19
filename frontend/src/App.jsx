@@ -3,7 +3,7 @@ import LoginPage from './pages/LoginPage';
 import AdminView from './pages/AdminView';
 import EmployeeView from './pages/EmployeeView';
 import { api } from './hooks/api';
-import { colors } from './components/UI';
+import { colors, Logo } from './components/UI';
 
 export default function App() {
   const [user, setUser] = useState(api.user);
@@ -31,7 +31,7 @@ export default function App() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src="/logo.png" alt="TeamPulse" className="logo-pulse" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
+        <div className="logo-pulse"><Logo size={100} glow /></div>
       </div>
     );
   }
@@ -51,14 +51,7 @@ export default function App() {
         height: '60px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ position: 'relative' }}>
-            <img
-              src="/logo.png"
-              alt="TeamPulse"
-              className="logo-pulse"
-              style={{ width: '42px', height: '42px', objectFit: 'contain' }}
-            />
-          </div>
+          <Logo size={38} />
           <span style={{
             fontSize: '15px', fontWeight: 700, letterSpacing: '-0.3px',
             background: colors.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
