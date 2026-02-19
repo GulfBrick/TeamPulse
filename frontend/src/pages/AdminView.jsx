@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../hooks/api';
-import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, PageHeader, TabBar, formatTime, formatDate, formatDateTime, todayStr } from '../components/UI';
+import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, PageHeader, TabBar, formatTime, formatDate, formatDateTime, todayStr, colors } from '../components/UI';
 
 export default function AdminView() {
   const [tab, setTab] = useState('dashboard');
@@ -98,7 +98,7 @@ export default function AdminView() {
   const priorityColor = { high: '#f87171', medium: '#fbbf24', low: '#34d399' };
 
   if (loading && !dashboard) {
-    return <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>Loading dashboard...</div>;
+    return <div style={{ padding: '60px', textAlign: 'center', color: colors.textDim }}>Loading dashboard...</div>;
   }
 
   return (
@@ -108,8 +108,8 @@ export default function AdminView() {
         {tabs.map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-            background: tab === t ? '#3b82f6' : 'transparent', color: tab === t ? '#fff' : '#64748b',
-            border: tab === t ? 'none' : '1px solid #2a2a3a', display: 'flex', alignItems: 'center', gap: '6px',
+            background: tab === t ? colors.gradient : 'transparent', color: tab === t ? '#fff' : colors.textDim,
+            border: tab === t ? 'none' : `1px solid ${colors.borderLight}`, display: 'flex', alignItems: 'center', gap: '6px',
           }}>
             {tabIcons[t]} {t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
@@ -129,14 +129,14 @@ export default function AdminView() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             {/* Team Status */}
             <Card>
-              <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: '#94a3b8', fontWeight: 600 }}>Team Status</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>Team Status</h3>
               {(dashboard.team_status || []).map(m => (
-                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #1e1e2e' }}>
+                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
                   <div>
-                    <div style={{ fontSize: '14px', color: '#f1f5f9', fontWeight: 500 }}>{m.name}</div>
-                    <div style={{ fontSize: '12px', color: '#475569' }}>
+                    <div style={{ fontSize: '14px', color: colors.text, fontWeight: 500 }}>{m.name}</div>
+                    <div style={{ fontSize: '12px', color: colors.textDimmer }}>
                       {m.title}{m.title && ' · '}{m.hours_today.toFixed(1)}h today
-                      {m.active_task && <span style={{ color: '#60a5fa' }}> · Working on: {m.active_task}</span>}
+                      {m.active_task && <span style={{ color: colors.cyan }}> · Working on: {m.active_task}</span>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -145,20 +145,20 @@ export default function AdminView() {
                 </div>
               ))}
               {(!dashboard.team_status || dashboard.team_status.length === 0) && (
-                <p style={{ color: '#475569', fontSize: '13px' }}>No employees yet.</p>
+                <p style={{ color: colors.textDimmer, fontSize: '13px' }}>No employees yet.</p>
               )}
             </Card>
 
             {/* Activity Overview */}
             <Card>
-              <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: '#94a3b8', fontWeight: 600 }}>Activity Tracking (Today)</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>Activity Tracking (Today)</h3>
               {(activityStats || []).length === 0 ? (
-                <p style={{ color: '#475569', fontSize: '13px' }}>No activity data yet. Pings are recorded when employees are clocked in.</p>
+                <p style={{ color: colors.textDimmer, fontSize: '13px' }}>No activity data yet. Pings are recorded when employees are clocked in.</p>
               ) : (
                 activityStats.map((s, i) => (
-                  <div key={i} style={{ padding: '12px 0', borderBottom: '1px solid #1e1e2e' }}>
+                  <div key={i} style={{ padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '13px', color: '#f1f5f9', fontWeight: 500 }}>{s.user_name}</span>
+                      <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{s.user_name}</span>
                       <span style={{
                         fontSize: '13px', fontWeight: 600,
                         color: s.active_percent >= 80 ? '#34d399' : s.active_percent >= 50 ? '#fbbf24' : '#f87171',
@@ -166,14 +166,14 @@ export default function AdminView() {
                         {s.active_percent.toFixed(0)}% active
                       </span>
                     </div>
-                    <div style={{ background: '#0d0d17', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                    <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                       <div style={{
                         width: `${s.active_percent}%`, height: '100%', borderRadius: '4px',
                         background: s.active_percent >= 80 ? '#34d399' : s.active_percent >= 50 ? '#fbbf24' : '#f87171',
                         transition: 'width 0.3s',
                       }} />
                     </div>
-                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '4px' }}>
+                    <div style={{ fontSize: '11px', color: colors.textDimmer, marginTop: '4px' }}>
                       {s.active_pings} active / {s.total_pings} total pings
                     </div>
                   </div>
@@ -196,10 +196,10 @@ export default function AdminView() {
                 <Card key={emp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: 600, color: '#f1f5f9' }}>{emp.name}</span>
+                      <span style={{ fontSize: '15px', fontWeight: 600, color: colors.text }}>{emp.name}</span>
                       <Badge status={emp.role === 'admin' ? 'exceeded' : 'pending'} />
                     </div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>{emp.email} · {emp.title || 'No title'}</div>
+                    <div style={{ fontSize: '12px', color: colors.textDim }}>{emp.email} · {emp.title || 'No title'}</div>
                   </div>
                   <Btn variant="secondary" onClick={() => { if (confirm('Deactivate this employee?')) { api.deleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px' }}>
                     Deactivate
@@ -221,22 +221,22 @@ export default function AdminView() {
             <Card style={{ overflow: 'hidden', padding: 0 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #1e1e2e' }}>
+                  <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
                     {['Employee', 'Date', 'Clock In', 'Clock Out', 'Duration'].map(h => (
-                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
+                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', color: colors.textDim, fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {timeEntries.map(entry => (
-                    <tr key={entry.id} style={{ borderBottom: '1px solid #1e1e2e' }}>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#f1f5f9' }}>{entry.user?.name || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#94a3b8' }}>{formatDate(entry.clock_in)}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#94a3b8' }}>{new Date(entry.clock_in).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#94a3b8' }}>
+                    <tr key={entry.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.text }}>{entry.user?.name || '—'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.textMuted }}>{formatDate(entry.clock_in)}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.textMuted }}>{new Date(entry.clock_in).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</td>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.textMuted }}>
                         {entry.clock_out ? new Date(entry.clock_out).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : <Badge status="clocked-in" />}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: '#60a5fa', fontWeight: 500 }}>
+                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.cyan, fontWeight: 500 }}>
                         {entry.duration_seconds ? formatTime(entry.duration_seconds) : '—'}
                       </td>
                     </tr>
@@ -256,8 +256,8 @@ export default function AdminView() {
             {['all', 'pending', 'in_progress', 'complete'].map(f => (
               <button key={f} onClick={() => setTaskFilter(f)} style={{
                 padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
-                background: taskFilter === f ? '#3b82f6' : 'transparent', color: taskFilter === f ? '#fff' : '#64748b',
-                border: taskFilter === f ? 'none' : '1px solid #2a2a3a',
+                background: taskFilter === f ? colors.gradient : 'transparent', color: taskFilter === f ? '#fff' : colors.textDim,
+                border: taskFilter === f ? 'none' : `1px solid ${colors.borderLight}`,
               }}>
                 {f === 'all' ? 'All' : f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
               </button>
@@ -279,13 +279,13 @@ export default function AdminView() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: priorityColor[task.priority] }} />
                         <span style={{
-                          fontSize: '14px', fontWeight: 500, color: '#f1f5f9',
+                          fontSize: '14px', fontWeight: 500, color: colors.text,
                           textDecoration: task.status === 'complete' ? 'line-through' : 'none',
                           opacity: task.status === 'complete' ? 0.6 : 1,
                         }}>{task.title}</span>
                         <Badge status={isOverdue ? 'overdue' : task.status} />
                       </div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginLeft: '18px' }}>
+                      <div style={{ fontSize: '12px', color: colors.textDim, marginLeft: '18px' }}>
                         {task.assignee?.name || 'Unassigned'}
                         {task.due_date && ` · Due ${formatDate(task.due_date)}`}
                         {totalTime > 0 && ` · ${formatTime(totalTime)} logged`}
@@ -316,27 +316,27 @@ export default function AdminView() {
                   <Card key={kpi.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9', marginBottom: '2px' }}>{kpi.metric}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{kpi.user?.name || '—'}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text, marginBottom: '2px' }}>{kpi.metric}</div>
+                        <div style={{ fontSize: '12px', color: colors.textDim }}>{kpi.user?.name || '—'}</div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <Badge status={status} />
-                        <button onClick={() => { api.deleteKPI(kpi.id).then(refresh); }} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer' }}>✕</button>
+                        <button onClick={() => { api.deleteKPI(kpi.id).then(refresh); }} style={{ background: 'none', border: 'none', color: colors.textDimmer, cursor: 'pointer' }}>✕</button>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '12px' }}>
                       <span style={{ fontSize: '24px', fontWeight: 700, color: barColor }}>{kpi.current}</span>
-                      <span style={{ fontSize: '14px', color: '#64748b' }}>/ {kpi.target} {kpi.unit}</span>
+                      <span style={{ fontSize: '14px', color: colors.textDim }}>/ {kpi.target} {kpi.unit}</span>
                     </div>
-                    <div style={{ background: '#0d0d17', borderRadius: '4px', height: '6px', overflow: 'hidden', marginBottom: '12px' }}>
+                    <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden', marginBottom: '12px' }}>
                       <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: barColor, borderRadius: '4px' }} />
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <input type="number" placeholder="Update..." style={{
-                        flex: 1, padding: '6px 10px', background: '#0d0d17', border: '1px solid #2a2a3a',
-                        borderRadius: '6px', color: '#f1f5f9', fontSize: '12px', outline: 'none',
+                        flex: 1, padding: '6px 10px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
+                        borderRadius: '6px', color: colors.text, fontSize: '12px', outline: 'none',
                       }} onKeyDown={e => { if (e.key === 'Enter' && e.target.value) { updateKPICurrent(kpi.id, e.target.value); e.target.value = ''; } }} />
-                      <span style={{ fontSize: '10px', color: '#475569', alignSelf: 'center' }}>↵</span>
+                      <span style={{ fontSize: '10px', color: colors.textDimmer, alignSelf: 'center' }}>↵</span>
                     </div>
                   </Card>
                 );
@@ -351,8 +351,8 @@ export default function AdminView() {
         <div>
           <PageHeader title="Daily Standups" right={
             <input type="date" value={standupDate} onChange={e => setStandupDate(e.target.value)} style={{
-              padding: '8px 12px', background: '#0d0d17', border: '1px solid #2a2a3a',
-              borderRadius: '6px', color: '#94a3b8', fontSize: '13px', outline: 'none',
+              padding: '8px 12px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
+              borderRadius: '6px', color: colors.textMuted, fontSize: '13px', outline: 'none',
             }} />
           } />
           {standups.length === 0 ? (
@@ -363,22 +363,22 @@ export default function AdminView() {
                 <Card key={s.id}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                     <div>
-                      <span style={{ fontSize: '15px', fontWeight: 600, color: '#f1f5f9' }}>{s.user?.name || 'Unknown'}</span>
-                      <span style={{ fontSize: '12px', color: '#475569', marginLeft: '10px' }}>{formatDateTime(s.created_at)}</span>
+                      <span style={{ fontSize: '15px', fontWeight: 600, color: colors.text }}>{s.user?.name || 'Unknown'}</span>
+                      <span style={{ fontSize: '12px', color: colors.textDimmer, marginLeft: '10px' }}>{formatDateTime(s.created_at)}</span>
                     </div>
-                    <button onClick={() => { api.deleteStandup(s.id).then(refresh); }} style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer' }}>✕</button>
+                    <button onClick={() => { api.deleteStandup(s.id).then(refresh); }} style={{ background: 'none', border: 'none', color: colors.textDimmer, cursor: 'pointer' }}>✕</button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                     <div>
-                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>✅ Yesterday</div>
-                      <div style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.5 }}>{s.yesterday || '—'}</div>
+                      <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>✅ Yesterday</div>
+                      <div style={{ fontSize: '13px', color: colors.textMuted, lineHeight: 1.5 }}>{s.yesterday || '—'}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>🎯 Today</div>
-                      <div style={{ fontSize: '13px', color: '#94a3b8', lineHeight: 1.5 }}>{s.today}</div>
+                      <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>🎯 Today</div>
+                      <div style={{ fontSize: '13px', color: colors.textMuted, lineHeight: 1.5 }}>{s.today}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>🚧 Blockers</div>
+                      <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>🚧 Blockers</div>
                       <div style={{ fontSize: '13px', color: s.blockers ? '#f87171' : '#94a3b8', lineHeight: 1.5 }}>{s.blockers || 'None'}</div>
                     </div>
                   </div>

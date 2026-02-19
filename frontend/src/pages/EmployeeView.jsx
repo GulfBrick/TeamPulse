@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../hooks/api';
 import { useActivityTracker } from '../hooks/useActivityTracker';
-import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, formatTime, formatDate, todayStr } from '../components/UI';
+import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, formatTime, formatDate, todayStr, colors } from '../components/UI';
 
 export default function EmployeeView() {
   const [clockStatus, setClockStatus] = useState({ clocked_in: false });
@@ -98,8 +98,8 @@ export default function EmployeeView() {
         {[['clock', '⏱ Time Clock'], ['tasks', '☑ My Tasks'], ['kpis', '◉ My KPIs']].map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)} style={{
             padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-            background: tab === key ? '#3b82f6' : 'transparent', color: tab === key ? '#fff' : '#64748b',
-            border: tab === key ? 'none' : '1px solid #2a2a3a',
+            background: tab === key ? colors.gradient : 'transparent', color: tab === key ? '#fff' : colors.textDim,
+            border: tab === key ? 'none' : `1px solid ${colors.borderLight}`,
           }}>{label}</button>
         ))}
       </div>
@@ -109,9 +109,9 @@ export default function EmployeeView() {
         <div>
           <Card style={{
             textAlign: 'center', padding: '48px 32px', marginBottom: '24px',
-            border: clockStatus.clocked_in ? '1px solid #065f46' : '1px solid #1e1e2e',
+            border: clockStatus.clocked_in ? '1px solid #065f46' : `1px solid ${colors.border}`,
           }}>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <div style={{ fontSize: '13px', color: colors.textDim, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
               {clockStatus.clocked_in ? 'Clocked In' : 'Not Clocked In'}
             </div>
             <div style={{ fontSize: '48px', fontWeight: 700, color: clockStatus.clocked_in ? '#34d399' : '#64748b', fontVariantNumeric: 'tabular-nums', marginBottom: '24px' }}>
@@ -126,8 +126,8 @@ export default function EmployeeView() {
             <Card style={{ marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Activity Status</div>
-                  <div style={{ fontSize: '14px', color: '#94a3b8' }}>
+                  <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '4px' }}>Activity Status</div>
+                  <div style={{ fontSize: '14px', color: colors.textMuted }}>
                     Your activity is being tracked while clocked in. Stay active to log your work time accurately.
                   </div>
                 </div>
@@ -165,10 +165,10 @@ export default function EmployeeView() {
                     <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => cycleTask(task)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
                         <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: priorityColor[task.priority] }} />
-                        <span style={{ fontSize: '14px', fontWeight: 500, color: '#f1f5f9' }}>{task.title}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 500, color: colors.text }}>{task.title}</span>
                         <Badge status={task.status} />
                       </div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginLeft: '18px' }}>
+                      <div style={{ fontSize: '12px', color: colors.textDim, marginLeft: '18px' }}>
                         Time logged: {formatTime(totalTime)}
                         {task.due_date && ` · Due ${formatDate(task.due_date)}`}
                       </div>
@@ -202,15 +202,15 @@ export default function EmployeeView() {
                 const barColor = pct >= 100 ? '#a78bfa' : pct >= 70 ? '#34d399' : '#f87171';
                 return (
                   <Card key={kpi.id}>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#f1f5f9', marginBottom: '8px' }}>{kpi.metric}</div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text, marginBottom: '8px' }}>{kpi.metric}</div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '12px' }}>
                       <span style={{ fontSize: '24px', fontWeight: 700, color: barColor }}>{kpi.current}</span>
-                      <span style={{ fontSize: '14px', color: '#64748b' }}>/ {kpi.target} {kpi.unit}</span>
+                      <span style={{ fontSize: '14px', color: colors.textDim }}>/ {kpi.target} {kpi.unit}</span>
                     </div>
-                    <div style={{ background: '#0d0d17', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                    <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                       <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: barColor, borderRadius: '4px', transition: 'width 0.3s' }} />
                     </div>
-                    <div style={{ fontSize: '12px', color: '#475569', marginTop: '8px' }}>{Math.round(pct)}% of target</div>
+                    <div style={{ fontSize: '12px', color: colors.textDimmer, marginTop: '8px' }}>{Math.round(pct)}% of target</div>
                   </Card>
                 );
               })}

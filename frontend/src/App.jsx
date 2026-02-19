@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage';
 import AdminView from './pages/AdminView';
 import EmployeeView from './pages/EmployeeView';
 import { api } from './hooks/api';
+import { colors } from './components/UI';
 
 export default function App() {
   const [user, setUser] = useState(api.user);
@@ -29,8 +30,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0d0d17', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-        Loading...
+      <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img src="/logo.png" alt="TeamPulse" className="logo-pulse" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
       </div>
     );
   }
@@ -42,34 +43,41 @@ export default function App() {
   const isAdmin = user.role === 'admin';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0d0d17', color: '#f1f5f9', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: colors.bg, color: colors.text, fontFamily: "'Inter', system-ui, sans-serif" }}>
       {/* Header */}
       <div style={{
-        background: '#141420', borderBottom: '1px solid #1e1e2e',
+        background: colors.card, borderBottom: `1px solid ${colors.border}`,
         padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         height: '60px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '8px',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '16px', fontWeight: 700, color: '#fff',
-          }}>T</div>
-          <span style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '-0.3px' }}>TeamPulse</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ position: 'relative' }}>
+            <img
+              src="/logo.png"
+              alt="TeamPulse"
+              className="logo-pulse"
+              style={{ width: '32px', height: '32px', objectFit: 'contain', borderRadius: '6px' }}
+            />
+          </div>
           <span style={{
-            fontSize: '11px', color: '#64748b', background: '#1e1e2e', padding: '2px 8px',
-            borderRadius: '4px', marginLeft: '8px',
+            fontSize: '15px', fontWeight: 700, letterSpacing: '-0.3px',
+            background: colors.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>TeamPulse</span>
+          <span style={{
+            fontSize: '10px', fontWeight: 600, color: colors.cyan, background: 'rgba(34,211,238,0.1)',
+            padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(34,211,238,0.2)',
+            letterSpacing: '0.5px',
           }}>
             {isAdmin ? 'ADMIN' : 'EMPLOYEE'}
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '13px', color: '#94a3b8' }}>{user.name}</span>
+          <span style={{ fontSize: '13px', color: colors.textMuted }}>{user.name}</span>
           <button onClick={handleLogout} style={{
             padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 500,
-            background: 'transparent', border: '1px solid #2a2a3a', color: '#64748b', cursor: 'pointer',
+            background: 'transparent', border: `1px solid ${colors.borderLight}`, color: colors.textDim, cursor: 'pointer',
+            transition: 'border-color 0.2s',
           }}>
             Sign Out
           </button>

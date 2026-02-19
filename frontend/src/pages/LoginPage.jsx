@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Btn, Input } from '../components/UI';
+import { Btn, Input, colors } from '../components/UI';
 import { api } from '../hooks/api';
 
 export default function LoginPage({ onLogin }) {
@@ -26,26 +26,42 @@ export default function LoginPage({ onLogin }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: '#0d0d17',
+      background: colors.bg,
     }}>
+      {/* Subtle radial glow behind card */}
       <div style={{
-        width: '400px', maxWidth: '90vw', background: '#141420', borderRadius: '16px',
-        padding: '40px', border: '1px solid #1e1e2e',
+        position: 'fixed', top: '30%', left: '50%', transform: 'translate(-50%, -50%)',
+        width: '600px', height: '600px', borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(34,211,238,0.06) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      <div className="fade-in" style={{
+        width: '420px', maxWidth: '90vw', background: colors.card, borderRadius: '20px',
+        padding: '48px 40px', border: `1px solid ${colors.border}`, position: 'relative',
+        boxShadow: '0 0 80px rgba(34,211,238,0.04), 0 24px 48px rgba(0,0,0,0.4)',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            width: '48px', height: '48px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '24px', fontWeight: 700, marginBottom: '16px',
-          }}>T</div>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#f1f5f9', marginBottom: '4px' }}>TeamPulse</h1>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>Sign in to your account</p>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          {/* Logo with pulse */}
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: '20px' }}>
+            <img
+              src="/logo.png"
+              alt="TeamPulse"
+              className="logo-pulse"
+              style={{ width: '64px', height: '64px', objectFit: 'contain', borderRadius: '12px' }}
+            />
+            <div className="logo-ring" />
+          </div>
+          <h1 style={{
+            fontSize: '26px', fontWeight: 800, marginBottom: '6px',
+            background: colors.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>TeamPulse</h1>
+          <p style={{ fontSize: '13px', color: colors.textDim }}>Sign in to your workspace</p>
         </div>
 
         <form onSubmit={handleLogin}>
           <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" />
-          <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+          <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" />
 
           {error && (
             <div style={{
@@ -56,10 +72,14 @@ export default function LoginPage({ onLogin }) {
             </div>
           )}
 
-          <Btn type="submit" style={{ width: '100%', padding: '12px' }} disabled={loading}>
+          <Btn type="submit" style={{ width: '100%', padding: '12px', fontSize: '14px' }} disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Btn>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <span style={{ fontSize: '11px', color: colors.textDimmer }}>Powered by TeamPulse</span>
+        </div>
       </div>
     </div>
   );

@@ -4,14 +4,51 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TeamPulse</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'DM Sans', system-ui, sans-serif; background: #0d0d17; color: #f1f5f9; }
+      body { font-family: 'Inter', system-ui, sans-serif; background: #06060e; color: #e2e8f0; -webkit-font-smoothing: antialiased; }
       ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: #0d0d17; }
-      ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 3px; }
+      ::-webkit-scrollbar-track { background: #06060e; }
+      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+      /* ─── Brand Animations ─── */
+      @keyframes pulse-glow {
+        0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 200, 255, 0.4)); }
+        50% { filter: drop-shadow(0 0 20px rgba(0, 200, 255, 0.7)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.3)); }
+      }
+      @keyframes pulse-ring {
+        0% { transform: scale(1); opacity: 0.6; }
+        100% { transform: scale(1.8); opacity: 0; }
+      }
+      @keyframes gradient-shift {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+      }
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .logo-pulse { animation: pulse-glow 3s ease-in-out infinite; }
+      .logo-ring {
+        position: absolute; inset: -4px; border-radius: 12px;
+        border: 1px solid rgba(0, 200, 255, 0.3);
+        animation: pulse-ring 3s ease-in-out infinite;
+        pointer-events: none;
+      }
+      .fade-in { animation: fade-in-up 0.4s ease-out both; }
+
+      /* ─── Focus States ─── */
+      input:focus, select:focus, textarea:focus {
+        border-color: #22d3ee !important;
+        box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15) !important;
+        outline: none;
+      }
     </style>
   </head>
   <body>

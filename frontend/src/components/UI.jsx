@@ -1,28 +1,40 @@
 import React from 'react';
 
-// ─── Styles ───────────────────────────────────────────────────
+// ─── Brand Colors ─────────────────────────────────────────────
 
-const colors = {
-  bg: '#0d0d17',
-  card: '#141420',
-  border: '#1e1e2e',
-  borderLight: '#2a2a3a',
-  text: '#f1f5f9',
+export const colors = {
+  // Backgrounds
+  bg: '#06060e',
+  bgRaised: '#0a0a16',
+  card: '#0f0f1c',
+  cardHover: '#141428',
+  // Borders
+  border: '#1a1a2e',
+  borderLight: '#252540',
+  borderAccent: '#22d3ee33',
+  // Text
+  text: '#e2e8f0',
   textMuted: '#94a3b8',
   textDim: '#64748b',
   textDimmer: '#475569',
+  // Brand gradient endpoints
+  cyan: '#22d3ee',
   blue: '#3b82f6',
+  purple: '#8b5cf6',
+  // Semantic
   green: '#34d399',
   red: '#f87171',
   yellow: '#fbbf24',
-  purple: '#a78bfa',
+  // Gradient strings
+  gradient: 'linear-gradient(135deg, #22d3ee, #3b82f6, #8b5cf6)',
+  gradientSubtle: 'linear-gradient(135deg, rgba(34,211,238,0.12), rgba(139,92,246,0.12))',
 };
 
 const badgeColors = {
   'clocked-in': { bg: '#0d3320', text: '#34d399', border: '#065f46' },
-  'clocked-out': { bg: '#1e1e2e', text: '#94a3b8', border: '#334155' },
+  'clocked-out': { bg: '#1a1a2e', text: '#94a3b8', border: '#334155' },
   'complete': { bg: '#0d3320', text: '#34d399', border: '#065f46' },
-  'in_progress': { bg: '#1e2a3a', text: '#60a5fa', border: '#1e3a5f' },
+  'in_progress': { bg: '#0c1a2e', text: '#22d3ee', border: '#164e63' },
   'pending': { bg: '#2d2006', text: '#fbbf24', border: '#4a3500' },
   'overdue': { bg: '#3b1010', text: '#f87171', border: '#5c1a1a' },
   'on-track': { bg: '#0d3320', text: '#34d399', border: '#065f46' },
@@ -58,7 +70,7 @@ export function Card({ children, style, ...props }) {
   );
 }
 
-export function StatCard({ label, value, sub, accent = colors.blue }) {
+export function StatCard({ label, value, sub, accent = colors.cyan }) {
   return (
     <Card style={{ flex: '1 1 200px' }}>
       <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '8px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
@@ -70,7 +82,7 @@ export function StatCard({ label, value, sub, accent = colors.blue }) {
 
 export function Btn({ children, variant = 'primary', style, ...props }) {
   const styles = {
-    primary: { background: colors.blue, color: '#fff', border: 'none' },
+    primary: { background: colors.gradient, color: '#fff', border: 'none' },
     secondary: { background: 'transparent', color: colors.textMuted, border: `1px solid ${colors.borderLight}` },
     danger: { background: '#dc2626', color: '#fff', border: 'none' },
     success: { background: '#059669', color: '#fff', border: 'none' },
@@ -89,6 +101,7 @@ export function Input({ label, ...props }) {
   const baseStyle = {
     width: '100%', padding: '10px 14px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
     borderRadius: '8px', color: colors.text, fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
   };
 
   return (
@@ -108,17 +121,17 @@ export function Input({ label, ...props }) {
 export function Modal({ title, onClose, children }) {
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)',
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(8px)',
     }} onClick={onClose}>
-      <div style={{
+      <div className="fade-in" style={{
         background: colors.card, borderRadius: '16px', padding: '32px', width: '480px',
         maxWidth: '90vw', maxHeight: '80vh', overflowY: 'auto',
-        border: `1px solid ${colors.borderLight}`, boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+        border: `1px solid ${colors.borderLight}`, boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h3 style={{ margin: 0, fontSize: '18px', color: colors.text }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: colors.textDim, cursor: 'pointer', fontSize: '20px' }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: colors.textDim, cursor: 'pointer', fontSize: '20px' }}>&#x2715;</button>
         </div>
         {children}
       </div>
@@ -150,7 +163,8 @@ export function TabBar({ tabs, active, onSelect }) {
       {tabs.map(t => (
         <button key={t} onClick={() => onSelect(t)} style={{
           padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
-          background: active === t ? colors.blue : 'transparent', color: active === t ? '#fff' : colors.textDim,
+          background: active === t ? colors.gradient : 'transparent',
+          color: active === t ? '#fff' : colors.textDim,
           border: active === t ? 'none' : `1px solid ${colors.borderLight}`,
         }}>
           {t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
