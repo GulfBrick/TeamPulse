@@ -70,12 +70,27 @@ export function Card({ children, style, ...props }) {
   );
 }
 
-export function StatCard({ label, value, sub, accent = colors.cyan }) {
+export function StatCard({ label, value, sub, accent = colors.cyan, icon }) {
   return (
-    <Card style={{ flex: '1 1 200px' }}>
-      <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '8px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-      <div style={{ fontSize: '28px', fontWeight: 700, color: accent }}>{value}</div>
-      {sub && <div style={{ fontSize: '12px', color: colors.textDimmer, marginTop: '4px' }}>{sub}</div>}
+    <Card style={{
+      flex: '1 1 200px', position: 'relative', overflow: 'hidden',
+      borderLeft: `3px solid ${accent}`,
+      background: `linear-gradient(135deg, ${colors.card}, ${colors.card}ee)`,
+    }}>
+      {/* Subtle glow in corner */}
+      <div style={{
+        position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px',
+        background: `radial-gradient(circle, ${accent}15, transparent 70%)`,
+        pointerEvents: 'none',
+      }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: '11px', color: colors.textDim, marginBottom: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>{label}</div>
+          <div style={{ fontSize: '32px', fontWeight: 800, color: accent, lineHeight: 1 }}>{value}</div>
+          {sub && <div style={{ fontSize: '12px', color: colors.textDimmer, marginTop: '6px' }}>{sub}</div>}
+        </div>
+        {icon && <div style={{ fontSize: '28px', opacity: 0.6 }}>{icon}</div>}
+      </div>
     </Card>
   );
 }
@@ -139,11 +154,16 @@ export function Modal({ title, onClose, children }) {
   );
 }
 
-export function EmptyState({ icon, message }) {
+export function EmptyState({ icon, message, sub }) {
   return (
-    <div style={{ textAlign: 'center', padding: '60px 20px', color: colors.textDimmer }}>
-      <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
-      <p style={{ fontSize: '14px' }}>{message}</p>
+    <div style={{
+      textAlign: 'center', padding: '60px 20px', color: colors.textDimmer,
+      background: `radial-gradient(ellipse at center, ${colors.card}80, transparent 70%)`,
+      borderRadius: '16px',
+    }}>
+      <div style={{ fontSize: '56px', marginBottom: '16px', filter: 'grayscale(0.3)' }}>{icon}</div>
+      <p style={{ fontSize: '15px', color: colors.textDim, fontWeight: 500 }}>{message}</p>
+      {sub && <p style={{ fontSize: '13px', color: colors.textDimmer, marginTop: '8px' }}>{sub}</p>}
     </div>
   );
 }

@@ -120,28 +120,68 @@ export default function EmployeeView() {
       {/* ─── Time Clock ──────────────────────────────────── */}
       {tab === 'clock' && (
         <div>
+          {/* Welcome greeting */}
+          <div style={{ marginBottom: '20px' }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '20px', fontWeight: 700, color: colors.text }}>
+              {clockStatus.clocked_in ? "You're on the clock" : `Ready to start, ${api.user?.name?.split(' ')[0] || 'champ'}?`}
+            </h2>
+            <p style={{ margin: 0, fontSize: '13px', color: colors.textDim }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+
           <Card style={{
-            textAlign: 'center', padding: '48px 32px', marginBottom: '24px',
-            border: clockStatus.clocked_in ? '1px solid #065f46' : `1px solid ${colors.border}`,
+            textAlign: 'center', padding: '48px 32px', marginBottom: '24px', position: 'relative', overflow: 'hidden',
+            border: clockStatus.clocked_in ? '1px solid rgba(52,211,153,0.3)' : `1px solid ${colors.borderLight}`,
+            background: clockStatus.clocked_in
+              ? 'linear-gradient(180deg, rgba(52,211,153,0.06), #0f0f1c)'
+              : `linear-gradient(180deg, ${colors.card}, ${colors.card})`,
           }}>
-            <div style={{ fontSize: '13px', color: colors.textDim, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              {clockStatus.clocked_in ? 'Clocked In' : 'Not Clocked In'}
+            {/* Animated glow when clocked in */}
+            {clockStatus.clocked_in && (
+              <div style={{
+                position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)',
+                width: '300px', height: '200px',
+                background: 'radial-gradient(circle, rgba(52,211,153,0.15), transparent 70%)',
+                pointerEvents: 'none', animation: 'activity-pulse 3s ease-in-out infinite',
+              }} />
+            )}
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                fontSize: '12px', color: clockStatus.clocked_in ? '#34d399' : colors.textDim,
+                marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 700,
+              }}>
+                {clockStatus.clocked_in ? '● Session Active' : 'Ready to Clock In'}
+              </div>
+              <div style={{
+                fontSize: '56px', fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginBottom: '28px', lineHeight: 1,
+                color: clockStatus.clocked_in ? '#34d399' : '#475569',
+              }}>
+                {clockStatus.clocked_in ? formatTime(elapsed) : '0h 0m'}
+              </div>
+              <Btn
+                variant={clockStatus.clocked_in ? 'danger' : 'success'}
+                onClick={handleClock}
+                style={{
+                  padding: '16px 56px', fontSize: '16px', fontWeight: 700, borderRadius: '12px',
+                  boxShadow: clockStatus.clocked_in ? '0 4px 24px rgba(220,38,38,0.3)' : '0 4px 24px rgba(5,150,105,0.3)',
+                }}
+              >
+                {clockStatus.clocked_in ? '⏹ Clock Out' : '▶ Clock In'}
+              </Btn>
             </div>
-            <div style={{ fontSize: '48px', fontWeight: 700, color: clockStatus.clocked_in ? '#34d399' : '#64748b', fontVariantNumeric: 'tabular-nums', marginBottom: '24px' }}>
-              {clockStatus.clocked_in ? formatTime(elapsed) : '—'}
-            </div>
-            <Btn variant={clockStatus.clocked_in ? 'danger' : 'success'} onClick={handleClock} style={{ padding: '14px 48px', fontSize: '16px' }}>
-              {clockStatus.clocked_in ? '⏹ Clock Out' : '▶ Clock In'}
-            </Btn>
           </Card>
 
           {clockStatus.clocked_in && (
-            <Card style={{ marginBottom: '24px' }}>
+            <Card style={{
+              marginBottom: '24px', borderLeft: '3px solid #34d399',
+              background: 'linear-gradient(135deg, rgba(52,211,153,0.04), transparent)',
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '4px' }}>Activity Status</div>
-                  <div style={{ fontSize: '14px', color: colors.textMuted }}>
-                    Your activity is being tracked while clocked in. Stay active to log your work time accurately.
+                  <div style={{ fontSize: '13px', color: '#34d399', marginBottom: '4px', fontWeight: 600 }}>Activity Tracking Active</div>
+                  <div style={{ fontSize: '13px', color: colors.textDim }}>
+                    Stay active and you'll get occasional check-ins to confirm you're here.
                   </div>
                 </div>
                 <Badge status="active" />
@@ -154,33 +194,55 @@ export default function EmployeeView() {
           </Btn>
 
           {/* Hours Chart */}
-          <Card style={{ marginTop: '8px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>My Hours — Last 7 Days</h3>
-            <div style={{ width: '100%', height: 200 }}>
-              <ResponsiveContainer>
-                <BarChart data={(dailyHours || []).map(d => ({
-                  ...d,
-                  day: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' }),
-                  hours: Math.round(d.hours * 10) / 10,
-                }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                  <XAxis dataKey="day" tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} />
-                  <YAxis tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} unit="h" />
-                  <Tooltip
-                    contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '8px', color: colors.text, fontSize: '13px' }}
-                    labelStyle={{ color: colors.textMuted }}
-                    formatter={(value) => [`${value}h`, 'Hours']}
-                  />
-                  <defs>
-                    <linearGradient id="empBarGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#22d3ee" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                  <Bar dataKey="hours" fill="url(#empBarGrad)" radius={[4, 4, 0, 0]} maxBarSize={48} />
-                </BarChart>
-              </ResponsiveContainer>
+          <Card style={{
+            marginTop: '8px', position: 'relative', overflow: 'hidden',
+            borderTop: '2px solid transparent', borderImage: 'linear-gradient(135deg, #22d3ee, #8b5cf6) 1',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>My Hours</h3>
+                <p style={{ margin: 0, fontSize: '12px', color: colors.textDim }}>Last 7 days</p>
+              </div>
+              <div style={{
+                padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+              }}>
+                {(dailyHours || []).reduce((sum, d) => sum + (d.hours || 0), 0).toFixed(1)}h total
+              </div>
             </div>
+            {(dailyHours || []).every(d => !d.hours || d.hours === 0) ? (
+              <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                <div style={{ fontSize: '36px', marginBottom: '10px', opacity: 0.5 }}>📈</div>
+                <p style={{ color: colors.textDim, fontSize: '13px', margin: 0 }}>Clock in to start building your week's hours.</p>
+              </div>
+            ) : (
+              <div style={{ width: '100%', height: 200 }}>
+                <ResponsiveContainer>
+                  <BarChart data={(dailyHours || []).map(d => ({
+                    ...d,
+                    day: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' }),
+                    hours: Math.round(d.hours * 10) / 10,
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.border} vertical={false} />
+                    <XAxis dataKey="day" tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} />
+                    <YAxis tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={false} tickLine={false} unit="h" />
+                    <Tooltip
+                      contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '10px', color: colors.text, fontSize: '13px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                      labelStyle={{ color: colors.textMuted, fontWeight: 600 }}
+                      formatter={(value) => [`${value}h`, 'Hours']}
+                      cursor={{ fill: 'rgba(34,211,238,0.06)' }}
+                    />
+                    <defs>
+                      <linearGradient id="empBarGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22d3ee" />
+                        <stop offset="100%" stopColor="#8b5cf6" />
+                      </linearGradient>
+                    </defs>
+                    <Bar dataKey="hours" fill="url(#empBarGrad)" radius={[6, 6, 0, 0]} maxBarSize={52} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </Card>
         </div>
       )}

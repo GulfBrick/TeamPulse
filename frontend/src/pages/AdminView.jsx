@@ -123,71 +123,156 @@ export default function AdminView() {
       {/* ═══ DASHBOARD ══════════════════════════════════════ */}
       {tab === 'dashboard' && dashboard && (
         <div>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '32px' }}>
-            <StatCard label="Team Size" value={dashboard.total_employees} />
-            <StatCard label="Clocked In" value={dashboard.clocked_in} accent="#34d399" sub={`of ${dashboard.total_employees}`} />
-            <StatCard label="Hours Today" value={`${dashboard.total_hours_today.toFixed(1)}h`} accent="#fbbf24" />
-            <StatCard label="Tasks Done Today" value={dashboard.tasks_done_today} accent="#a78bfa" sub={`${dashboard.pending_tasks} pending`} />
+          {/* Welcome Banner */}
+          <div className="fade-in" style={{
+            position: 'relative', overflow: 'hidden', borderRadius: '16px', padding: '32px 36px', marginBottom: '28px',
+            background: `linear-gradient(135deg, ${colors.card}, #0c0c20)`,
+            border: `1px solid ${colors.borderLight}`,
+          }}>
+            {/* Decorative gradient orb */}
+            <div style={{
+              position: 'absolute', top: '-40px', right: '-20px', width: '200px', height: '200px',
+              background: 'radial-gradient(circle, rgba(34,211,238,0.12), rgba(139,92,246,0.08), transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+            <div style={{ position: 'relative' }}>
+              <div style={{ fontSize: '13px', color: colors.textDim, marginBottom: '6px', fontWeight: 500 }}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </div>
+              <h2 style={{ margin: '0 0 6px', fontSize: '24px', fontWeight: 800, color: colors.text }}>
+                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'}, {api.user?.name?.split(' ')[0] || 'Boss'}
+              </h2>
+              <p style={{ margin: 0, fontSize: '14px', color: colors.textDim }}>
+                {dashboard.clocked_in > 0
+                  ? `${dashboard.clocked_in} team member${dashboard.clocked_in > 1 ? 's' : ''} online and crushing it right now.`
+                  : dashboard.total_employees > 0
+                    ? 'No one is clocked in yet. The calm before the storm.'
+                    : 'Add your first team member to get the party started.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Stat Cards */}
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '28px' }}>
+            <StatCard label="Team Size" value={dashboard.total_employees} icon="👥" />
+            <StatCard label="Clocked In" value={dashboard.clocked_in} accent="#34d399" icon="🟢" sub={`of ${dashboard.total_employees}`} />
+            <StatCard label="Hours Today" value={`${dashboard.total_hours_today.toFixed(1)}h`} accent="#fbbf24" icon="⏱" />
+            <StatCard label="Tasks Done" value={dashboard.tasks_done_today} accent="#a78bfa" icon="🎯" sub={`${dashboard.pending_tasks} pending`} />
           </div>
 
           {/* Hours Chart */}
-          <Card style={{ marginBottom: '24px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>Team Hours — Last 7 Days</h3>
-            <div style={{ width: '100%', height: 220 }}>
-              <ResponsiveContainer>
-                <BarChart data={(dailyHours || []).map(d => ({
-                  ...d,
-                  day: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' }),
-                  hours: Math.round(d.hours * 10) / 10,
-                }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
-                  <XAxis dataKey="day" tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} />
-                  <YAxis tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} unit="h" />
-                  <Tooltip
-                    contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '8px', color: colors.text, fontSize: '13px' }}
-                    labelStyle={{ color: colors.textMuted }}
-                    formatter={(value) => [`${value}h`, 'Hours']}
-                  />
-                  <defs>
-                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#22d3ee" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                  <Bar dataKey="hours" fill="url(#barGrad)" radius={[4, 4, 0, 0]} maxBarSize={48} />
-                </BarChart>
-              </ResponsiveContainer>
+          <Card style={{
+            marginBottom: '24px', position: 'relative', overflow: 'hidden',
+            borderTop: '2px solid transparent',
+            borderImage: 'linear-gradient(135deg, #22d3ee, #8b5cf6) 1',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>Team Hours</h3>
+                <p style={{ margin: 0, fontSize: '12px', color: colors.textDim }}>Last 7 days overview</p>
+              </div>
+              <div style={{
+                padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+              }}>
+                {(dailyHours || []).reduce((sum, d) => sum + (d.hours || 0), 0).toFixed(1)}h total
+              </div>
             </div>
+            {(dailyHours || []).every(d => !d.hours || d.hours === 0) ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px', opacity: 0.5 }}>📊</div>
+                <p style={{ color: colors.textDim, fontSize: '14px', margin: 0 }}>Hours will appear here once your team starts clocking in.</p>
+              </div>
+            ) : (
+              <div style={{ width: '100%', height: 220 }}>
+                <ResponsiveContainer>
+                  <BarChart data={(dailyHours || []).map(d => ({
+                    ...d,
+                    day: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' }),
+                    hours: Math.round(d.hours * 10) / 10,
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.border} vertical={false} />
+                    <XAxis dataKey="day" tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} />
+                    <YAxis tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={false} tickLine={false} unit="h" />
+                    <Tooltip
+                      contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '10px', color: colors.text, fontSize: '13px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                      labelStyle={{ color: colors.textMuted, fontWeight: 600 }}
+                      formatter={(value) => [`${value}h`, 'Hours']}
+                      cursor={{ fill: 'rgba(34,211,238,0.06)' }}
+                    />
+                    <defs>
+                      <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22d3ee" />
+                        <stop offset="100%" stopColor="#8b5cf6" />
+                      </linearGradient>
+                    </defs>
+                    <Bar dataKey="hours" fill="url(#barGrad)" radius={[6, 6, 0, 0]} maxBarSize={52} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </Card>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             {/* Team Status */}
             <Card>
-              <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>Team Status</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', color: colors.text, fontWeight: 700 }}>Team Status</h3>
+                <span style={{ fontSize: '12px', color: colors.textDimmer }}>{(dashboard.team_status || []).length} members</span>
+              </div>
               {(dashboard.team_status || []).map(m => (
-                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
-                  <div>
-                    <div style={{ fontSize: '14px', color: colors.text, fontWeight: 500 }}>{m.name}</div>
-                    <div style={{ fontSize: '12px', color: colors.textDimmer }}>
-                      {m.title}{m.title && ' · '}{m.hours_today.toFixed(1)}h today
-                      {m.active_task && <span style={{ color: colors.cyan }}> · Working on: {m.active_task}</span>}
+                <div key={m.id} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 12px',
+                  borderRadius: '10px', marginBottom: '6px',
+                  background: m.is_clocked_in ? 'rgba(52,211,153,0.06)' : 'transparent',
+                  border: m.is_clocked_in ? '1px solid rgba(52,211,153,0.15)' : '1px solid transparent',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: m.is_clocked_in ? 'rgba(52,211,153,0.15)' : colors.bgRaised,
+                      fontSize: '14px', fontWeight: 700, color: m.is_clocked_in ? '#34d399' : colors.textDim,
+                    }}>
+                      {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', color: colors.text, fontWeight: 600 }}>{m.name}</div>
+                      <div style={{ fontSize: '11px', color: colors.textDimmer }}>
+                        {m.title || 'Team Member'} · {m.hours_today.toFixed(1)}h today
+                        {m.active_task && <span style={{ color: colors.cyan }}> · {m.active_task}</span>}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Badge status={m.is_clocked_in ? 'clocked-in' : 'clocked-out'} />
-                  </div>
+                  <Badge status={m.is_clocked_in ? 'clocked-in' : 'clocked-out'} />
                 </div>
               ))}
               {(!dashboard.team_status || dashboard.team_status.length === 0) && (
-                <p style={{ color: colors.textDimmer, fontSize: '13px' }}>No employees yet.</p>
+                <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🚀</div>
+                  <p style={{ color: colors.textDim, fontSize: '13px', margin: '0 0 12px' }}>Your team starts here</p>
+                  <Btn onClick={() => { setTab('team'); setShowAddEmployee(true); }} style={{ padding: '8px 20px', fontSize: '12px' }}>
+                    + Add First Employee
+                  </Btn>
+                </div>
               )}
             </Card>
 
             {/* Activity Overview */}
             <Card>
-              <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>Activity Tracking (Today)</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '15px', color: colors.text, fontWeight: 700 }}>Activity Tracking</h3>
+                <span style={{
+                  fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px',
+                  background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+                }}>LIVE</span>
+              </div>
               {(activityStats || []).length === 0 ? (
-                <p style={{ color: colors.textDimmer, fontSize: '13px' }}>No activity data yet. Pings are recorded when employees are clocked in.</p>
+                <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>📡</div>
+                  <p style={{ color: colors.textDim, fontSize: '13px', margin: 0 }}>
+                    Activity pings will stream in once employees clock in and start working.
+                  </p>
+                </div>
               ) : (
                 activityStats.map((s, i) => (
                   <div key={i} style={{ padding: '12px 0', borderBottom: `1px solid ${colors.border}` }}>
