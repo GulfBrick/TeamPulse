@@ -5,7 +5,6 @@ RUN apk add --no-cache git
 
 WORKDIR /app
 COPY . .
-RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux go build -o /teampulse ./cmd/main.go
 
 # ─── Production Stage ────────────────────────────────────────
