@@ -17,7 +17,7 @@ RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 COPY --from=builder /teampulse .
-COPY static/ ./static/
+COPY --from=builder /app/static/ ./static/
 
 EXPOSE 8080
 
