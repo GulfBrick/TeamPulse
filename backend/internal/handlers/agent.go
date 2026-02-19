@@ -106,8 +106,14 @@ func SkipAgentSetup(c echo.Context) error {
 }
 
 // DownloadAgent serves the pre-built agent zip.
+// If AGENT_DOWNLOAD_URL env var is set, it redirects there instead (for cloud deploys where local file isn't available).
 func DownloadAgent(c echo.Context) error {
-	// Try zip first, then exe
+	// Check for external download URL first (e.g. GitHub Release, S3, etc.)
+	if url := os.Getenv("AGENT_DOWNLOAD_URL"); url != "" {
+		return c.Redirect(http.StatusTemporaryRedirect, url)
+	}
+
+	// Try local files
 	paths := []struct {
 		file string
 		name string
