@@ -15,9 +15,12 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=builder /teampulse .
 COPY --from=builder /app/static/ ./static/
-COPY backend/agent/ ./agent/
 
-RUN mkdir -p screenshots
+# Copy agent zip if it was included in the build context
+# Uses a wildcard so it won't fail if the file is missing (LFS not pulled)
+COPY --from=builder /app/agent/TeamPulseAgent.zi[p] ./agent/
+
+RUN mkdir -p screenshots agent
 
 EXPOSE 8080
 
