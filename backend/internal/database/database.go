@@ -55,13 +55,17 @@ func Migrate() {
 	}
 	log.Println("Database migrated")
 
-	// Seed admin user if none exists
-	var count int64
-	DB.Model(&models.User{}).Where("role = ?", models.RoleAdmin).Count(&count)
-	if count == 0 {
-		hash, _ := bcrypt.GenerateFromPassword([]byte(getEnv("ADMIN_PASSWORD", "admin123")), bcrypt.DefaultCost)
-		admin := models.User{
-			Email:    getEnv("ADMIN_EMAIL", "admin@teampulse.local"),
+	// Seed or update admin user from env vars
+	adminEmail := getEnv("ADMIN_EMAIL", "admin@teampulse.local")
+	adminPass := getEnv("ADMIN_PASSWORD", "admin123")
+	hash, _ := bcrypt.GenerateFromPassword([]byte(adminPass), bcrypt.DefaultCost)
+
+	var admin models.User
+	result := DB.Where("role = ?", models.RoleAdmin).First(&admin)
+	if result.Error != nil {
+		// No admin exists — create one
+		admin = models.User{
+			Email:    adminEmail,
 			Password: string(hash),
 			Name:     "Admin",
 			Role:     models.RoleAdmin,
@@ -70,6 +74,13 @@ func Migrate() {
 		}
 		DB.Create(&admin)
 		log.Printf("Admin user created: %s", admin.Email)
+	} else if admin.Email != adminEmail {
+		// Admin exists but env vars changed — update credentials
+		DB.Model(&admin).Updates(map[string]interface{}{
+			"email":    adminEmail,
+			"password": string(hash),
+		})
+		log.Printf("Admin user updated to: %s", adminEmail)
 	}
 }
 
