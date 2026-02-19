@@ -36,6 +36,11 @@
         75% { transform: translate(40px, -20px) scale(1.05); }
       }
 
+      @keyframes activity-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+      }
+
       .logo-pulse { animation: pulse-glow 3s ease-in-out infinite; }
       .logo-ring {
         position: absolute; inset: -4px; border-radius: 12px;

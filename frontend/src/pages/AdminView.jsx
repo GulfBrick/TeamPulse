@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../hooks/api';
 import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, PageHeader, TabBar, formatTime, formatDate, formatDateTime, todayStr, colors } from '../components/UI';
 
@@ -11,6 +12,7 @@ export default function AdminView() {
   const [standups, setStandups] = useState([]);
   const [timeEntries, setTimeEntries] = useState([]);
   const [activityStats, setActivityStats] = useState([]);
+  const [dailyHours, setDailyHours] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -28,7 +30,7 @@ export default function AdminView() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, e, t, k, s, te, as_] = await Promise.all([
+      const [d, e, t, k, s, te, as_, dh] = await Promise.all([
         api.getDashboard().catch(() => null),
         api.listEmployees().catch(() => []),
         api.listTasks().catch(() => []),
@@ -36,6 +38,7 @@ export default function AdminView() {
         api.listStandups(standupDate).catch(() => []),
         api.getTimeEntries().catch(() => []),
         api.getActivityStats().catch(() => []),
+        api.getDailyHours(7).catch(() => []),
       ]);
       setDashboard(d);
       setEmployees(e);
@@ -44,6 +47,7 @@ export default function AdminView() {
       setStandups(s);
       setTimeEntries(te);
       setActivityStats(as_);
+      setDailyHours(dh);
     } catch (err) { console.error(err); }
     setLoading(false);
   }, [standupDate]);
@@ -125,6 +129,36 @@ export default function AdminView() {
             <StatCard label="Hours Today" value={`${dashboard.total_hours_today.toFixed(1)}h`} accent="#fbbf24" />
             <StatCard label="Tasks Done Today" value={dashboard.tasks_done_today} accent="#a78bfa" sub={`${dashboard.pending_tasks} pending`} />
           </div>
+
+          {/* Hours Chart */}
+          <Card style={{ marginBottom: '24px' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>Team Hours — Last 7 Days</h3>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <BarChart data={(dailyHours || []).map(d => ({
+                  ...d,
+                  day: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' }),
+                  hours: Math.round(d.hours * 10) / 10,
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
+                  <XAxis dataKey="day" tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} />
+                  <YAxis tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} unit="h" />
+                  <Tooltip
+                    contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '8px', color: colors.text, fontSize: '13px' }}
+                    labelStyle={{ color: colors.textMuted }}
+                    formatter={(value) => [`${value}h`, 'Hours']}
+                  />
+                  <defs>
+                    <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22d3ee" />
+                      <stop offset="100%" stopColor="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+                  <Bar dataKey="hours" fill="url(#barGrad)" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             {/* Team Status */}

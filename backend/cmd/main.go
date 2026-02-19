@@ -80,6 +80,9 @@ func main() {
 	api.GET("/clock/status", handlers.GetClockStatus)
 	api.GET("/clock/entries", handlers.GetTimeEntries)
 
+	// Hours chart (admin sees team, employee sees own)
+	api.GET("/hours/daily", handlers.GetDailyHours)
+
 	// Activity Pings (employee browser sends these)
 	api.POST("/activity/ping", handlers.RecordActivityPing)
 

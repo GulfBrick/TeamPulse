@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"teampulse/internal/database"
+	mw "teampulse/internal/middleware"
 	"teampulse/internal/models"
 
 	"github.com/labstack/echo/v4"
@@ -101,4 +103,60 @@ func GetDashboard(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, stats)
+}
+
+// ─── Daily Hours Chart ────────────────────────────────────────
+
+type DailyHoursEntry struct {
+	Date    string  `json:"date"`
+	Hours   float64 `json:"hours"`
+	Entries int     `json:"entries"`
+}
+
+func GetDailyHours(c echo.Context) error {
+	days := 7
+	if d := c.QueryParam("days"); d != "" {
+		if parsed, err := strconv.Atoi(d); err == nil && parsed > 0 && parsed <= 90 {
+			days = parsed
+		}
+	}
+
+	userID := mw.GetUserID(c)
+	role := mw.GetUserRole(c)
+
+	result := make([]DailyHoursEntry, days)
+	now := time.Now()
+
+	for i := 0; i < days; i++ {
+		day := now.AddDate(0, 0, -(days-1-i))
+		dateStr := day.Format("2006-01-02")
+
+		var entries []models.TimeEntry
+		query := database.DB.Where("date = ?", dateStr)
+		if role != models.RoleAdmin {
+			query = query.Where("user_id = ?", userID)
+		}
+		query.Find(&entries)
+
+		var totalSeconds float64
+		entryCount := 0
+		for _, e := range entries {
+			if e.ClockOut != nil {
+				totalSeconds += float64(e.Duration)
+				entryCount++
+			} else {
+				// Active session: compute elapsed
+				totalSeconds += time.Since(e.ClockIn).Seconds()
+				entryCount++
+			}
+		}
+
+		result[i] = DailyHoursEntry{
+			Date:    dateStr,
+			Hours:   totalSeconds / 3600.0,
+			Entries: entryCount,
+		}
+	}
+
+	return c.JSON(http.StatusOK, result)
 }

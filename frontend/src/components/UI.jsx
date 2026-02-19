@@ -157,6 +157,66 @@ export function PageHeader({ title, right }) {
   );
 }
 
+export function ActivityCheckModal({ countdown, onConfirm }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(12px)',
+    }}>
+      <div className="fade-in" style={{
+        background: colors.card, borderRadius: '20px', padding: '48px', width: '420px',
+        maxWidth: '90vw', textAlign: 'center',
+        border: `1px solid ${colors.borderLight}`, boxShadow: '0 24px 64px rgba(0,0,0,0.8)',
+      }} onClick={e => e.stopPropagation()}>
+        {/* Pulsing alert icon */}
+        <div style={{ fontSize: '64px', marginBottom: '16px', animation: 'activity-pulse 1.5s ease-in-out infinite' }}>
+          ⚠️
+        </div>
+
+        <h2 style={{ margin: '0 0 8px', fontSize: '22px', color: colors.text, fontWeight: 700 }}>
+          Are you still working?
+        </h2>
+        <p style={{ margin: '0 0 24px', fontSize: '14px', color: colors.textDim }}>
+          Please confirm your presence to stay clocked in.
+        </p>
+
+        {/* Countdown ring */}
+        <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 28px' }}>
+          <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="50" cy="50" r="44" fill="none" stroke={colors.border} strokeWidth="6" />
+            <circle cx="50" cy="50" r="44" fill="none"
+              stroke={countdown > 15 ? colors.cyan : colors.red}
+              strokeWidth="6" strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 44}`}
+              strokeDashoffset={`${2 * Math.PI * 44 * (1 - countdown / 60)}`}
+              style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+            />
+          </svg>
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '28px', fontWeight: 700, color: countdown > 15 ? colors.text : colors.red,
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            {countdown}
+          </div>
+        </div>
+
+        <button onClick={onConfirm} style={{
+          width: '100%', padding: '16px 32px', borderRadius: '12px', fontSize: '18px',
+          fontWeight: 700, cursor: 'pointer', color: '#fff', border: 'none',
+          background: colors.gradient, boxShadow: '0 4px 24px rgba(34,211,238,0.3)',
+        }}>
+          I'm Here
+        </button>
+
+        <p style={{ margin: '16px 0 0', fontSize: '12px', color: colors.textDimmer }}>
+          You'll be automatically clocked out if you don't respond.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function TabBar({ tabs, active, onSelect }) {
   return (
     <div style={{ display: 'flex', gap: '4px' }}>

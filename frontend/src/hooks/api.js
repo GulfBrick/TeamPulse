@@ -101,6 +101,9 @@ class ApiClient {
 
   // Dashboard (admin)
   getDashboard() { return this.request('GET', '/dashboard'); }
+
+  // Hours chart (admin sees team totals, employee sees own)
+  getDailyHours(days = 7) { return this.request('GET', `/hours/daily?days=${days}`); }
 }
 
 export const api = new ApiClient();

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../hooks/api';
 import { useActivityTracker } from '../hooks/useActivityTracker';
-import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, formatTime, formatDate, todayStr, colors } from '../components/UI';
+import { useActivityCheck } from '../hooks/useActivityCheck';
+import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, ActivityCheckModal, formatTime, formatDate, todayStr, colors } from '../components/UI';
 
 export default function EmployeeView() {
   const [clockStatus, setClockStatus] = useState({ clocked_in: false });
@@ -12,24 +14,30 @@ export default function EmployeeView() {
   const [standupForm, setStandupForm] = useState({ yesterday: '', today: '', blockers: '' });
   const [elapsed, setElapsed] = useState(0);
   const [taskElapsed, setTaskElapsed] = useState(0);
+  const [dailyHours, setDailyHours] = useState([]);
   const [tab, setTab] = useState('clock');
 
   // Activity tracking
   useActivityTracker(clockStatus.clocked_in);
 
+  // Activity check (random popup)
+  const { showCheck, countdown, confirmPresence, wasAutoClocked, dismissAutoClockMessage } = useActivityCheck(clockStatus.clocked_in);
+
   // Load data
   const refresh = useCallback(async () => {
     try {
-      const [cs, t, at, k] = await Promise.all([
+      const [cs, t, at, k, dh] = await Promise.all([
         api.getClockStatus(),
         api.listTasks(),
         api.getActiveTimer(),
         api.listKPIs(),
+        api.getDailyHours(7).catch(() => []),
       ]);
       setClockStatus(cs);
       setTasks(t);
       setActiveTimer(at.active ? at : null);
       setKPIs(k);
+      setDailyHours(dh);
     } catch (err) {
       console.error(err);
     }
@@ -55,6 +63,11 @@ export default function EmployeeView() {
     }, 1000);
     return () => clearInterval(i);
   }, [activeTimer]);
+
+  // Refresh when auto-clocked out by activity check
+  useEffect(() => {
+    if (wasAutoClocked) refresh();
+  }, [wasAutoClocked, refresh]);
 
   const handleClock = async () => {
     if (clockStatus.clocked_in) {
@@ -139,6 +152,36 @@ export default function EmployeeView() {
           <Btn variant="secondary" onClick={() => setShowStandup(true)} style={{ marginBottom: '16px' }}>
             📝 Log Daily Standup
           </Btn>
+
+          {/* Hours Chart */}
+          <Card style={{ marginTop: '8px' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '14px', color: colors.textMuted, fontWeight: 600 }}>My Hours — Last 7 Days</h3>
+            <div style={{ width: '100%', height: 200 }}>
+              <ResponsiveContainer>
+                <BarChart data={(dailyHours || []).map(d => ({
+                  ...d,
+                  day: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' }),
+                  hours: Math.round(d.hours * 10) / 10,
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
+                  <XAxis dataKey="day" tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} />
+                  <YAxis tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={{ stroke: colors.border }} tickLine={false} unit="h" />
+                  <Tooltip
+                    contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '8px', color: colors.text, fontSize: '13px' }}
+                    labelStyle={{ color: colors.textMuted }}
+                    formatter={(value) => [`${value}h`, 'Hours']}
+                  />
+                  <defs>
+                    <linearGradient id="empBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22d3ee" />
+                      <stop offset="100%" stopColor="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+                  <Bar dataKey="hours" fill="url(#empBarGrad)" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
         </div>
       )}
 
@@ -230,6 +273,30 @@ export default function EmployeeView() {
             <Btn onClick={handleStandup}>Submit</Btn>
           </div>
         </Modal>
+      )}
+
+      {/* ─── Activity Check Modal ──────────────────────── */}
+      {showCheck && (
+        <ActivityCheckModal countdown={countdown} onConfirm={confirmPresence} />
+      )}
+
+      {/* ─── Auto Clock-Out Notification ───────────────── */}
+      {wasAutoClocked && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          background: colors.card, border: `1px solid ${colors.red}`, borderRadius: '12px',
+          padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '12px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 9000,
+        }} className="fade-in">
+          <span style={{ fontSize: '20px' }}>⏹</span>
+          <div>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: colors.red }}>Auto Clocked Out</div>
+            <div style={{ fontSize: '12px', color: colors.textDim }}>You were clocked out due to inactivity.</div>
+          </div>
+          <button onClick={dismissAutoClockMessage} style={{
+            background: 'none', border: 'none', color: colors.textDim, cursor: 'pointer', fontSize: '16px', marginLeft: '8px',
+          }}>✕</button>
+        </div>
       )}
     </div>
   );
