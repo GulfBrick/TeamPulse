@@ -123,11 +123,15 @@ func RecordActivityPing(c echo.Context) error {
 	}
 
 	ping := models.ActivityPing{
-		UserID:      userID,
-		TimeEntryID: entry.ID,
-		Timestamp:   time.Now(),
-		IsActive:    req.IsActive,
-		IdleSeconds: req.IdleSeconds,
+		UserID:       userID,
+		TimeEntryID:  entry.ID,
+		Timestamp:    time.Now(),
+		IsActive:     req.IsActive,
+		IdleSeconds:  req.IdleSeconds,
+		MouseMoves:   req.MouseMoves,
+		MouseClicks:  req.MouseClicks,
+		Keystrokes:   req.Keystrokes,
+		ScrollEvents: req.ScrollEvents,
 	}
 	database.DB.Create(&ping)
 
@@ -156,12 +160,29 @@ func GetActivityStats(c echo.Context) error {
 			pct = float64(activePings) / float64(totalPings) * 100
 		}
 
+		// Aggregate event counts
+		type EventSums struct {
+			MouseMoves   int
+			MouseClicks  int
+			Keystrokes   int
+			ScrollEvents int
+		}
+		var sums EventSums
+		database.DB.Model(&models.ActivityPing{}).
+			Select("COALESCE(SUM(mouse_moves),0) as mouse_moves, COALESCE(SUM(mouse_clicks),0) as mouse_clicks, COALESCE(SUM(keystrokes),0) as keystrokes, COALESCE(SUM(scroll_events),0) as scroll_events").
+			Where("time_entry_id = ?", entry.ID).
+			Scan(&sums)
+
 		stats = append(stats, models.ActivityStat{
 			UserID:        entry.UserID,
 			UserName:      entry.User.Name,
 			ActivePercent: pct,
 			TotalPings:    int(totalPings),
 			ActivePings:   int(activePings),
+			MouseMoves:    sums.MouseMoves,
+			MouseClicks:   sums.MouseClicks,
+			Keystrokes:    sums.Keystrokes,
+			ScrollEvents:  sums.ScrollEvents,
 		})
 	}
 

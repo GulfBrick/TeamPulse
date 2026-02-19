@@ -13,6 +13,9 @@ export default function AdminView() {
   const [timeEntries, setTimeEntries] = useState([]);
   const [activityStats, setActivityStats] = useState([]);
   const [dailyHours, setDailyHours] = useState([]);
+  const [agentMonitor, setAgentMonitor] = useState([]);
+  const [agentScreenshots, setAgentScreenshots] = useState([]);
+  const [appUsage, setAppUsage] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modals
@@ -30,7 +33,7 @@ export default function AdminView() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, e, t, k, s, te, as_, dh] = await Promise.all([
+      const [d, e, t, k, s, te, as_, dh, am, asc, au] = await Promise.all([
         api.getDashboard().catch(() => null),
         api.listEmployees().catch(() => []),
         api.listTasks().catch(() => []),
@@ -39,6 +42,9 @@ export default function AdminView() {
         api.getTimeEntries().catch(() => []),
         api.getActivityStats().catch(() => []),
         api.getDailyHours(7).catch(() => []),
+        api.getAgentMonitor().catch(() => []),
+        api.getAgentScreenshots().catch(() => []),
+        api.getAppUsage().catch(() => []),
       ]);
       setDashboard(d);
       setEmployees(e);
@@ -48,6 +54,9 @@ export default function AdminView() {
       setTimeEntries(te);
       setActivityStats(as_);
       setDailyHours(dh);
+      setAgentMonitor(am);
+      setAgentScreenshots(asc);
+      setAppUsage(au);
     } catch (err) { console.error(err); }
     setLoading(false);
   }, [standupDate]);
@@ -96,8 +105,8 @@ export default function AdminView() {
     refresh();
   };
 
-  const tabs = ['dashboard', 'team', 'time', 'tasks', 'kpis', 'standups'];
-  const tabIcons = { dashboard: '◈', team: '👥', time: '⏱', tasks: '☑', kpis: '◉', standups: '◇' };
+  const tabs = ['dashboard', 'team', 'time', 'tasks', 'kpis', 'standups', 'monitoring'];
+  const tabIcons = { dashboard: '◈', team: '👥', time: '⏱', tasks: '☑', kpis: '◉', standups: '◇', monitoring: '📡' };
   const filteredTasks = taskFilter === 'all' ? tasks : tasks.filter(t => t.status === taskFilter);
   const priorityColor = { high: '#f87171', medium: '#fbbf24', low: '#34d399' };
 
@@ -295,6 +304,22 @@ export default function AdminView() {
                     <div style={{ fontSize: '11px', color: colors.textDimmer, marginTop: '4px' }}>
                       {s.active_pings} active / {s.total_pings} total pings
                     </div>
+                    {(s.mouse_moves > 0 || s.mouse_clicks > 0 || s.keystrokes > 0 || s.scroll_events > 0) && (
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.mouse_moves}</span> moves
+                        </span>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.mouse_clicks}</span> clicks
+                        </span>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.keystrokes}</span> keys
+                        </span>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.scroll_events}</span> scrolls
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))
               )}
@@ -503,6 +528,122 @@ export default function AdminView() {
                   </div>
                 </Card>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ MONITORING (Desktop Agent) ════════════════════ */}
+      {tab === 'monitoring' && (
+        <div>
+          <PageHeader title="Desktop Monitoring" />
+
+          {(agentMonitor || []).length === 0 && (appUsage || []).length === 0 && (agentScreenshots || []).length === 0 ? (
+            <EmptyState icon="📡" message="No desktop agent data yet. Employees need to install and run the TeamPulse Desktop Agent." />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              {/* Real-time Active App per Employee */}
+              {(agentMonitor || []).length > 0 && (
+                <Card>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <h3 style={{ margin: 0, fontSize: '15px', color: colors.text, fontWeight: 700 }}>Active Applications</h3>
+                    <span style={{
+                      fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px',
+                      background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+                    }}>LIVE</span>
+                  </div>
+                  {agentMonitor.map((m, i) => (
+                    <div key={i} style={{
+                      padding: '12px 0', borderBottom: i < agentMonitor.length - 1 ? `1px solid ${colors.border}` : 'none',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', color: colors.text, fontWeight: 600 }}>{m.user_name}</span>
+                        <span style={{
+                          fontSize: '12px', fontWeight: 500, padding: '2px 8px', borderRadius: '6px',
+                          background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)',
+                        }}>
+                          {m.active_app || 'Unknown'}
+                        </span>
+                      </div>
+                      {m.active_window_title && (
+                        <div style={{ fontSize: '11px', color: colors.textDim, marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {m.active_window_title}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.mouse_moves}</span> moves
+                        </span>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.mouse_clicks}</span> clicks
+                        </span>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.keystrokes}</span> keys
+                        </span>
+                        <span style={{ fontSize: '11px', color: colors.textDim }}>
+                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.scroll_events}</span> scrolls
+                        </span>
+                        <span style={{ fontSize: '11px', color: colors.textDimmer }}>
+                          {m.total_heartbeats} heartbeats
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+              )}
+
+              {/* App Usage Breakdown */}
+              {(appUsage || []).length > 0 && (
+                <Card>
+                  <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>App Usage (Today)</h3>
+                  {appUsage.map((a, i) => {
+                    const maxMin = appUsage[0]?.minutes || 1;
+                    const pct = (a.minutes / maxMin) * 100;
+                    return (
+                      <div key={i} style={{ marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{a.app}</span>
+                          <span style={{ fontSize: '12px', color: colors.textDim }}>{Math.round(a.minutes)} min</span>
+                        </div>
+                        <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${pct}%`, height: '100%', borderRadius: '4px',
+                            background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)',
+                            transition: 'width 0.3s',
+                          }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </Card>
+              )}
+
+              {/* Screenshot Gallery */}
+              {(agentScreenshots || []).length > 0 && (
+                <Card>
+                  <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>Recent Screenshots</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
+                    {agentScreenshots.slice(0, 12).map((ss, i) => (
+                      <div key={i} style={{
+                        borderRadius: '10px', overflow: 'hidden',
+                        border: `1px solid ${colors.borderLight}`, background: colors.bg,
+                      }}>
+                        <img
+                          src={ss.image_url}
+                          alt={`Screenshot by ${ss.user?.name || 'Employee'}`}
+                          style={{ width: '100%', height: 'auto', display: 'block' }}
+                        />
+                        <div style={{ padding: '8px 10px' }}>
+                          <div style={{ fontSize: '12px', color: colors.text, fontWeight: 500 }}>{ss.user?.name || 'Unknown'}</div>
+                          <div style={{ fontSize: '11px', color: colors.textDimmer }}>
+                            {new Date(ss.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
             </div>
           )}
         </div>

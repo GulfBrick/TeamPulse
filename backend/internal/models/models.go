@@ -46,12 +46,16 @@ type TimeEntry struct {
 // ─── Activity Tracking ────────────────────────────────────────
 
 type ActivityPing struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	UserID      uint      `gorm:"not null;index" json:"user_id"`
-	TimeEntryID uint      `gorm:"index" json:"time_entry_id"`
-	Timestamp   time.Time `gorm:"not null" json:"timestamp"`
-	IsActive    bool      `gorm:"not null" json:"is_active"` // false = idle
-	IdleSeconds int       `json:"idle_seconds"`              // how long idle before this ping
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	UserID       uint      `gorm:"not null;index" json:"user_id"`
+	TimeEntryID  uint      `gorm:"index" json:"time_entry_id"`
+	Timestamp    time.Time `gorm:"not null" json:"timestamp"`
+	IsActive     bool      `gorm:"not null" json:"is_active"` // false = idle
+	IdleSeconds  int       `json:"idle_seconds"`              // how long idle before this ping
+	MouseMoves   int       `json:"mouse_moves"`
+	MouseClicks  int       `json:"mouse_clicks"`
+	Keystrokes   int       `json:"keystrokes"`
+	ScrollEvents int       `json:"scroll_events"`
 }
 
 // ─── Tasks ────────────────────────────────────────────────────
@@ -126,6 +130,30 @@ type Standup struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// ─── Agent Tracking (Desktop) ─────────────────────────────────
+
+type AgentHeartbeat struct {
+	ID                uint      `gorm:"primaryKey" json:"id"`
+	UserID            uint      `gorm:"not null;index" json:"user_id"`
+	User              User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Timestamp         time.Time `gorm:"not null" json:"timestamp"`
+	MouseMoves        int       `json:"mouse_moves"`
+	MouseClicks       int       `json:"mouse_clicks"`
+	Keystrokes        int       `json:"keystrokes"`
+	ScrollEvents      int       `json:"scroll_events"`
+	ActiveApp         string    `json:"active_app"`
+	ActiveWindowTitle string    `json:"active_window_title"`
+	IdleSeconds       int       `json:"idle_seconds"`
+}
+
+type Screenshot struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uint      `gorm:"not null;index" json:"user_id"`
+	User      User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Timestamp time.Time `gorm:"not null" json:"timestamp"`
+	ImageURL  string    `gorm:"not null" json:"image_url"`
+}
+
 // ─── DTOs ─────────────────────────────────────────────────────
 
 type LoginRequest struct {
@@ -147,8 +175,12 @@ type LoginResponse struct {
 }
 
 type ActivityPingRequest struct {
-	IsActive    bool `json:"is_active"`
-	IdleSeconds int  `json:"idle_seconds"`
+	IsActive     bool `json:"is_active"`
+	IdleSeconds  int  `json:"idle_seconds"`
+	MouseMoves   int  `json:"mouse_moves"`
+	MouseClicks  int  `json:"mouse_clicks"`
+	Keystrokes   int  `json:"keystrokes"`
+	ScrollEvents int  `json:"scroll_events"`
 }
 
 type DashboardStats struct {
@@ -178,4 +210,36 @@ type ActivityStat struct {
 	ActivePercent float64 `json:"active_percent"`
 	TotalPings    int     `json:"total_pings"`
 	ActivePings   int     `json:"active_pings"`
+	MouseMoves    int     `json:"mouse_moves"`
+	MouseClicks   int     `json:"mouse_clicks"`
+	Keystrokes    int     `json:"keystrokes"`
+	ScrollEvents  int     `json:"scroll_events"`
+}
+
+type AgentHeartbeatRequest struct {
+	MouseMoves        int    `json:"mouse_moves"`
+	MouseClicks       int    `json:"mouse_clicks"`
+	Keystrokes        int    `json:"keystrokes"`
+	ScrollEvents      int    `json:"scroll_events"`
+	ActiveApp         string `json:"active_app"`
+	ActiveWindowTitle string `json:"active_window_title"`
+	IdleSeconds       int    `json:"idle_seconds"`
+}
+
+type AgentMonitorEntry struct {
+	UserID            uint    `json:"user_id"`
+	UserName          string  `json:"user_name"`
+	ActiveApp         string  `json:"active_app"`
+	ActiveWindowTitle string  `json:"active_window_title"`
+	MouseMoves        int     `json:"mouse_moves"`
+	MouseClicks       int     `json:"mouse_clicks"`
+	Keystrokes        int     `json:"keystrokes"`
+	ScrollEvents      int     `json:"scroll_events"`
+	TotalHeartbeats   int     `json:"total_heartbeats"`
+	LatestScreenshot  *string `json:"latest_screenshot"`
+}
+
+type AppUsageEntry struct {
+	App     string  `json:"app"`
+	Minutes float64 `json:"minutes"`
 }

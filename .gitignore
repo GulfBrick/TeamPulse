@@ -9,6 +9,10 @@ backend/main
 backend/main.exe
 backend/teampulse
 backend/teampulse.exe
+backend/main.go
+
+# Screenshots (uploaded at runtime)
+screenshots/
 
 # IDE
 .vscode/

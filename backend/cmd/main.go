@@ -108,6 +108,10 @@ func main() {
 	api.POST("/standups", handlers.CreateStandup)
 	api.DELETE("/standups/:id", handlers.DeleteStandup)
 
+	// Agent endpoints (desktop agent sends these)
+	api.POST("/agent/heartbeat", handlers.RecordAgentHeartbeat)
+	api.POST("/agent/screenshot", handlers.UploadScreenshot)
+
 	// ─── Admin Routes ─────────────────────────────────────────
 	admin := api.Group("", mw.AdminOnly)
 
@@ -117,6 +121,12 @@ func main() {
 	admin.DELETE("/employees/:id", handlers.DeactivateEmployee)
 	admin.GET("/dashboard", handlers.GetDashboard)
 	admin.GET("/activity/stats", handlers.GetActivityStats)
+	admin.GET("/agent/screenshots", handlers.GetScreenshots)
+	admin.GET("/agent/monitor", handlers.GetAgentMonitor)
+	admin.GET("/agent/app-usage", handlers.GetAppUsage)
+
+	// Serve screenshots
+	e.Static("/screenshots", "screenshots")
 
 	// Serve static frontend in production
 	e.Static("/", "static")

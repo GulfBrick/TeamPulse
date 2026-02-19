@@ -76,7 +76,16 @@ class ApiClient {
   getTimeEntries(date) { return this.request('GET', `/clock/entries${date ? `?date=${date}` : ''}`); }
 
   // Activity
-  sendPing(isActive, idleSeconds = 0) { return this.request('POST', '/activity/ping', { is_active: isActive, idle_seconds: idleSeconds }); }
+  sendPing(isActive, idleSeconds = 0, events = {}) {
+    return this.request('POST', '/activity/ping', {
+      is_active: isActive,
+      idle_seconds: idleSeconds,
+      mouse_moves: events.mouseMoves || 0,
+      mouse_clicks: events.mouseClicks || 0,
+      keystrokes: events.keystrokes || 0,
+      scroll_events: events.scrollEvents || 0,
+    });
+  }
   getActivityStats(date) { return this.request('GET', `/activity/stats${date ? `?date=${date}` : ''}`); }
 
   // Tasks
@@ -101,6 +110,11 @@ class ApiClient {
 
   // Dashboard (admin)
   getDashboard() { return this.request('GET', '/dashboard'); }
+
+  // Agent monitoring (admin)
+  getAgentMonitor() { return this.request('GET', '/agent/monitor'); }
+  getAgentScreenshots() { return this.request('GET', '/agent/screenshots'); }
+  getAppUsage() { return this.request('GET', '/agent/app-usage'); }
 
   // Hours chart (admin sees team totals, employee sees own)
   getDailyHours(days = 7) { return this.request('GET', `/hours/daily?days=${days}`); }

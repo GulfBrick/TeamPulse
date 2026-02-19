@@ -9,6 +9,34 @@ function randomInterval() {
   return MIN_INTERVAL + Math.random() * (MAX_INTERVAL - MIN_INTERVAL);
 }
 
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function sendSystemNotification() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return null;
+
+  try {
+    const notification = new Notification('TeamPulse — Are you still working?', {
+      body: 'Click to confirm your presence. You have 60 seconds.',
+      icon: '/logo.png',
+      requireInteraction: true,
+      tag: 'teampulse-activity-check', // replaces previous notification if still shown
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+
+    return notification;
+  } catch {
+    return null;
+  }
+}
+
 export function useActivityCheck(isClockedIn) {
   const [showCheck, setShowCheck] = useState(false);
   const [countdown, setCountdown] = useState(RESPONSE_TIMEOUT);
@@ -16,6 +44,7 @@ export function useActivityCheck(isClockedIn) {
 
   const checkTimerRef = useRef(null);
   const countdownRef = useRef(null);
+  const notificationRef = useRef(null);
 
   const clearAllTimers = useCallback(() => {
     if (checkTimerRef.current) {
@@ -26,6 +55,11 @@ export function useActivityCheck(isClockedIn) {
       clearInterval(countdownRef.current);
       countdownRef.current = null;
     }
+    // Close any open system notification
+    if (notificationRef.current) {
+      notificationRef.current.close();
+      notificationRef.current = null;
+    }
   }, []);
 
   const scheduleCheck = useCallback(() => {
@@ -34,6 +68,8 @@ export function useActivityCheck(isClockedIn) {
     checkTimerRef.current = setTimeout(() => {
       setShowCheck(true);
       setCountdown(RESPONSE_TIMEOUT);
+      // Send system notification so it appears over other apps
+      notificationRef.current = sendSystemNotification();
     }, delay);
   }, [clearAllTimers]);
 
@@ -48,6 +84,10 @@ export function useActivityCheck(isClockedIn) {
           clearInterval(countdownRef.current);
           countdownRef.current = null;
           setShowCheck(false);
+          if (notificationRef.current) {
+            notificationRef.current.close();
+            notificationRef.current = null;
+          }
           api.clockOut().catch(() => {});
           setWasAutoClocked(true);
           return 0;
@@ -64,10 +104,11 @@ export function useActivityCheck(isClockedIn) {
     };
   }, [showCheck]);
 
-  // Schedule check when clocked in, clear when clocked out
+  // Request notification permission when clocked in; schedule checks
   useEffect(() => {
     if (isClockedIn) {
       setWasAutoClocked(false);
+      requestNotificationPermission();
       scheduleCheck();
     } else {
       clearAllTimers();
@@ -79,6 +120,11 @@ export function useActivityCheck(isClockedIn) {
   const confirmPresence = useCallback(() => {
     setShowCheck(false);
     setCountdown(RESPONSE_TIMEOUT);
+    // Close system notification on confirm
+    if (notificationRef.current) {
+      notificationRef.current.close();
+      notificationRef.current = null;
+    }
     scheduleCheck();
   }, [scheduleCheck]);
 

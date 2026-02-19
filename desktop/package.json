@@ -1,0 +1,35 @@
+{
+  "name": "teampulse-agent",
+  "version": "1.0.0",
+  "description": "TeamPulse Desktop Agent — system-wide activity tracking",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "dev": "electron ."
+  },
+  "dependencies": {
+    "active-win": "^8.1.0",
+    "screenshot-desktop": "^1.15.0",
+    "uiohook-napi": "^1.5.4",
+    "electron-store": "^8.1.0",
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.0"
+  },
+  "build": {
+    "appId": "com.teampulse.agent",
+    "productName": "TeamPulse Agent",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
+  }
+}
