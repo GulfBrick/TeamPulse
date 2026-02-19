@@ -223,17 +223,17 @@ ipcMain.handle('login', async (_event, { email, password }) => {
 });
 
 ipcMain.handle('set-api-url', async (_event, { url }) => {
-  // Store the server URL and update the API client
-  const apiUrl = url.replace(/\/+$/, '') + '/api';
+  // Normalize: strip trailing slashes and /api suffix, then re-add /api
+  let clean = url.trim().replace(/\/+$/, '').replace(/\/api$/i, '');
+  const apiUrl = clean + '/api';
   store.set('apiUrl', apiUrl);
+  store.set('serverUrl', clean);
   apiClient.baseUrl = apiUrl;
   return { ok: true };
 });
 
 ipcMain.handle('get-api-url', async () => {
-  const apiUrl = store.get('apiUrl') || '';
-  // Return the server URL (without /api suffix) for display
-  return apiUrl.replace(/\/api$/, '');
+  return store.get('serverUrl') || '';
 });
 
 ipcMain.handle('auth-code', async (_event, { code }) => {
