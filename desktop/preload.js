@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('teampulse', {
+  setApiUrl: (url) => ipcRenderer.invoke('set-api-url', { url }),
+  getApiUrl: () => ipcRenderer.invoke('get-api-url'),
   login: (email, password) => ipcRenderer.invoke('login', { email, password }),
   authWithCode: (code) => ipcRenderer.invoke('auth-code', { code }),
   logout: () => ipcRenderer.invoke('logout'),

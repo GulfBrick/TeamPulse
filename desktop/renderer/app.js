@@ -14,6 +14,12 @@ const userNameEl = document.getElementById('user-name');
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const logoutBtn = document.getElementById('logout-btn');
+const serverUrlInput = document.getElementById('server-url');
+
+// Load saved server URL
+window.teampulse.getApiUrl().then(url => {
+  if (url) serverUrlInput.value = url;
+});
 
 // Tab switching
 window.switchTab = function(tab) {
@@ -55,9 +61,23 @@ window.teampulse.getStatus().then(({ loggedIn, user, isClockedIn }) => {
   }
 });
 
+// Helper: ensure server URL is set before any auth
+async function ensureServerUrl() {
+  const url = serverUrlInput.value.trim();
+  if (!url) {
+    errorEl.textContent = 'Please enter your server URL first.';
+    return false;
+  }
+  await window.teampulse.setApiUrl(url);
+  return true;
+}
+
 // Setup code auth
 codeBtn.addEventListener('click', async () => {
   errorEl.textContent = '';
+
+  if (!(await ensureServerUrl())) return;
+
   const code = setupCodeInput.value.trim().toUpperCase();
 
   if (!code || code.length !== 6) {
@@ -91,6 +111,9 @@ setupCodeInput.addEventListener('input', () => {
 // Email/password login
 loginBtn.addEventListener('click', async () => {
   errorEl.textContent = '';
+
+  if (!(await ensureServerUrl())) return;
+
   const email = emailInput.value.trim();
   const password = passwordInput.value;
 

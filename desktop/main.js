@@ -222,6 +222,20 @@ ipcMain.handle('login', async (_event, { email, password }) => {
   return login(email, password);
 });
 
+ipcMain.handle('set-api-url', async (_event, { url }) => {
+  // Store the server URL and update the API client
+  const apiUrl = url.replace(/\/+$/, '') + '/api';
+  store.set('apiUrl', apiUrl);
+  apiClient.baseUrl = apiUrl;
+  return { ok: true };
+});
+
+ipcMain.handle('get-api-url', async () => {
+  const apiUrl = store.get('apiUrl') || '';
+  // Return the server URL (without /api suffix) for display
+  return apiUrl.replace(/\/api$/, '');
+});
+
 ipcMain.handle('auth-code', async (_event, { code }) => {
   const result = await apiClient.authWithCode(code);
   store.set('token', result.token);
