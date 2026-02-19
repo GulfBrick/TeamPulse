@@ -53,11 +53,22 @@ export default function EmployeeView() {
 
   // Check agent setup status on mount — show onboarding if not done
   useEffect(() => {
+    // First check from cached user data (available immediately from login)
+    if (api.user && !api.user.agent_setup_done) {
+      setShowOnboarding(true);
+      return;
+    }
+    // Fallback: fetch fresh status from API
     api.getAgentStatus().then(status => {
       if (!status.agent_setup_done) {
         setShowOnboarding(true);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      // If status check fails, assume agent not set up
+      if (!api.user?.agent_setup_done) {
+        setShowOnboarding(true);
+      }
+    });
   }, []);
 
   const startAgentDownload = async () => {
