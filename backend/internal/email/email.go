@@ -22,7 +22,7 @@ func SendWelcomeEmail(name, toEmail, password, loginURL string) error {
 	html := buildWelcomeHTML(name, toEmail, password, loginURL)
 
 	params := &resend.SendEmailRequest{
-		From:    "TeamPulse <noreply@gulfbrick.com>",
+		From:    "TeamPulse <noreply@contact.clearlinemarkets.com>",
 		To:      []string{toEmail},
 		Subject: "Welcome to TeamPulse!",
 		Html:    html,
