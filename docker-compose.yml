@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  # ─── PostgreSQL ────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: teampulse
+      POSTGRES_USER: teampulse
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-teampulse_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teampulse"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Go Backend ────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: teampulse
+      DB_PASSWORD: ${DB_PASSWORD:-teampulse_dev}
+      DB_NAME: teampulse
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@teampulse.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

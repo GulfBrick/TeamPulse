@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go get:*)",
+      "Bash(go mod tidy:*)",
+      "Bash(go build:*)",
+      "Bash(go run:*)",
+      "Bash(docker run:*)",
+      "Bash(docker rm:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(powershell -Command \"Start-Sleep -Seconds 3; Set-Location ''C:\\\\Users\\\\danie\\\\OneDrive\\\\Documents\\\\teampulse\\\\backend''; go run ./cmd/main.go\")",
+      "Bash(start:*)",
+      "Bash(powershell -Command \"Set-Location ''C:\\\\Users\\\\danie\\\\OneDrive\\\\Documents\\\\teampulse\\\\frontend''; npm install; npm run dev\")",
+      "Bash(powershell -Command \"Set-Location ''C:\\\\Users\\\\danie\\\\OneDrive\\\\Documents\\\\teampulse\\\\frontend''; npm run build\")",
+      "Bash(git -C \"C:\\\\Users\\\\danie\\\\OneDrive\\\\Documents\\\\teampulse\" status)",
+      "Bash(gh auth status:*)",
+      "Bash(git -C \"C:\\\\Users\\\\danie\\\\OneDrive\\\\Documents\\\\teampulse\" init)",
+      "Bash(git -C \"C:\\\\Users\\\\danie\\\\OneDrive\\\\Documents\\\\teampulse\" add -A)",
+      "Bash(git -C \"C:\\\\Users\\\\danie\\\\OneDrive\\\\Documents\\\\teampulse\" add .gitignore .env.example README.md docker-compose.yml backend/ frontend/ .claude/settings.local.json)"
+    ]
+  }
+}
