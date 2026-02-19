@@ -116,6 +116,11 @@ class ApiClient {
   getAgentScreenshots() { return this.request('GET', '/agent/screenshots'); }
   getAppUsage() { return this.request('GET', '/agent/app-usage'); }
 
+  // Agent setup (employee)
+  getAgentStatus() { return this.request('GET', '/agent/status'); }
+  generateSetupToken() { return this.request('POST', '/agent/setup-token'); }
+  skipAgentSetup() { return this.request('POST', '/agent/skip-setup'); }
+
   // Hours chart (admin sees team totals, employee sees own)
   getDailyHours(days = 7) { return this.request('GET', `/hours/daily?days=${days}`); }
 }

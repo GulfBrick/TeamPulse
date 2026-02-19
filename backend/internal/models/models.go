@@ -23,7 +23,8 @@ type User struct {
 	Role      Role           `gorm:"not null;default:employee" json:"role"`
 	Title     string         `json:"title"`
 	PIN       string         `gorm:"size:6" json:"-"`
-	IsActive  bool           `gorm:"default:true" json:"is_active"`
+	IsActive       bool           `gorm:"default:true" json:"is_active"`
+	AgentSetupDone bool           `gorm:"default:false" json:"agent_setup_done"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -127,6 +128,17 @@ type Standup struct {
 	Yesterday string    `json:"yesterday"`
 	Today     string    `gorm:"not null" json:"today"`
 	Blockers  string    `json:"blockers"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// ─── Agent Setup ──────────────────────────────────────────────
+
+type AgentSetupToken struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	UserID    uint      `gorm:"not null;index" json:"user_id"`
+	Code      string    `gorm:"not null;uniqueIndex;size:8" json:"code"`
+	ExpiresAt time.Time `gorm:"not null" json:"expires_at"`
+	Used      bool      `gorm:"default:false" json:"used"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

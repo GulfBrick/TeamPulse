@@ -1,5 +1,11 @@
 const loginView = document.getElementById('login-view');
 const statusView = document.getElementById('status-view');
+const codeForm = document.getElementById('code-form');
+const emailForm = document.getElementById('email-form');
+const tabCode = document.getElementById('tab-code');
+const tabEmail = document.getElementById('tab-email');
+const setupCodeInput = document.getElementById('setup-code');
+const codeBtn = document.getElementById('code-btn');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const loginBtn = document.getElementById('login-btn');
@@ -8,6 +14,24 @@ const userNameEl = document.getElementById('user-name');
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const logoutBtn = document.getElementById('logout-btn');
+
+// Tab switching
+window.switchTab = function(tab) {
+  errorEl.textContent = '';
+  if (tab === 'code') {
+    codeForm.classList.remove('hidden');
+    emailForm.classList.add('hidden');
+    tabCode.classList.add('active');
+    tabEmail.classList.remove('active');
+    setupCodeInput.focus();
+  } else {
+    codeForm.classList.add('hidden');
+    emailForm.classList.remove('hidden');
+    tabCode.classList.remove('active');
+    tabEmail.classList.add('active');
+    emailInput.focus();
+  }
+};
 
 function showLogin() {
   loginView.style.display = 'block';
@@ -31,7 +55,40 @@ window.teampulse.getStatus().then(({ loggedIn, user, isClockedIn }) => {
   }
 });
 
-// Login
+// Setup code auth
+codeBtn.addEventListener('click', async () => {
+  errorEl.textContent = '';
+  const code = setupCodeInput.value.trim().toUpperCase();
+
+  if (!code || code.length !== 6) {
+    errorEl.textContent = 'Please enter a 6-character setup code.';
+    return;
+  }
+
+  codeBtn.disabled = true;
+  codeBtn.textContent = 'Connecting...';
+
+  try {
+    const result = await window.teampulse.authWithCode(code);
+    showStatus(result.user, false);
+  } catch (err) {
+    errorEl.textContent = err.message || 'Invalid or expired code';
+  }
+
+  codeBtn.disabled = false;
+  codeBtn.textContent = 'Connect';
+});
+
+setupCodeInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') codeBtn.click();
+});
+
+// Auto-uppercase as you type
+setupCodeInput.addEventListener('input', () => {
+  setupCodeInput.value = setupCodeInput.value.toUpperCase();
+});
+
+// Email/password login
 loginBtn.addEventListener('click', async () => {
   errorEl.textContent = '';
   const email = emailInput.value.trim();
@@ -56,7 +113,6 @@ loginBtn.addEventListener('click', async () => {
   loginBtn.textContent = 'Sign In';
 });
 
-// Allow Enter key to submit
 passwordInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') loginBtn.click();
 });
@@ -64,6 +120,7 @@ passwordInput.addEventListener('keydown', (e) => {
 // Logout
 logoutBtn.addEventListener('click', async () => {
   await window.teampulse.logout();
+  setupCodeInput.value = '';
   emailInput.value = '';
   passwordInput.value = '';
   showLogin();

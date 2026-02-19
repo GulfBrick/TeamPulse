@@ -17,6 +17,12 @@ export default function EmployeeView() {
   const [dailyHours, setDailyHours] = useState([]);
   const [tab, setTab] = useState('clock');
 
+  // Agent onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState(1);
+  const [setupCode, setSetupCode] = useState('');
+  const [setupLoading, setSetupLoading] = useState(false);
+
   // Activity tracking
   useActivityTracker(clockStatus.clocked_in);
 
@@ -44,6 +50,43 @@ export default function EmployeeView() {
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Check agent setup status on mount — show onboarding if not done
+  useEffect(() => {
+    api.getAgentStatus().then(status => {
+      if (!status.agent_setup_done) {
+        setShowOnboarding(true);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const startAgentDownload = async () => {
+    setOnboardingStep(2);
+    // Trigger download
+    const link = document.createElement('a');
+    link.href = '/api/agent/download';
+    link.download = 'TeamPulseAgent-Setup.exe';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const generateCode = async () => {
+    setSetupLoading(true);
+    try {
+      const result = await api.generateSetupToken();
+      setSetupCode(result.code);
+      setOnboardingStep(3);
+    } catch (err) {
+      console.error(err);
+    }
+    setSetupLoading(false);
+  };
+
+  const finishOnboarding = async () => {
+    await api.skipAgentSetup().catch(() => {});
+    setShowOnboarding(false);
+  };
 
   // Live elapsed timer
   useEffect(() => {
@@ -358,6 +401,128 @@ export default function EmployeeView() {
           <button onClick={dismissAutoClockMessage} style={{
             background: 'none', border: 'none', color: colors.textDim, cursor: 'pointer', fontSize: '16px', marginLeft: '8px',
           }}>✕</button>
+        </div>
+      )}
+
+      {/* ─── Agent Onboarding Overlay ──────────────────── */}
+      {showOnboarding && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} className="fade-in">
+          <div style={{
+            background: colors.card, borderRadius: '20px', padding: '40px 48px',
+            maxWidth: '480px', width: '90%', textAlign: 'center',
+            border: `1px solid ${colors.borderLight}`,
+            boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+          }}>
+            {/* Progress dots */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '28px' }}>
+              {[1, 2, 3].map(s => (
+                <div key={s} style={{
+                  width: s === onboardingStep ? '24px' : '8px', height: '8px', borderRadius: '4px',
+                  background: s <= onboardingStep ? 'linear-gradient(135deg, #22d3ee, #8b5cf6)' : colors.border,
+                  transition: 'all 0.3s',
+                }} />
+              ))}
+            </div>
+
+            {/* Step 1: Welcome */}
+            {onboardingStep === 1 && (
+              <div>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🖥</div>
+                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: 800, color: colors.text }}>
+                  Install Desktop Agent
+                </h2>
+                <p style={{ margin: '0 0 8px', fontSize: '14px', color: colors.textDim, lineHeight: 1.6 }}>
+                  TeamPulse needs a small desktop app to track your activity across all applications — not just this browser tab.
+                </p>
+                <p style={{ margin: '0 0 28px', fontSize: '13px', color: colors.textDimmer, lineHeight: 1.5 }}>
+                  It runs silently in your system tray and only tracks while you're clocked in.
+                </p>
+                <Btn onClick={startAgentDownload} style={{
+                  padding: '14px 40px', fontSize: '15px', fontWeight: 700, borderRadius: '12px', width: '100%',
+                }}>
+                  Download Agent
+                </Btn>
+                <button onClick={finishOnboarding} style={{
+                  background: 'none', border: 'none', color: colors.textDimmer, fontSize: '12px',
+                  cursor: 'pointer', marginTop: '16px', textDecoration: 'underline',
+                }}>
+                  Skip for now
+                </button>
+              </div>
+            )}
+
+            {/* Step 2: Install */}
+            {onboardingStep === 2 && (
+              <div>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: 800, color: colors.text }}>
+                  Run the Installer
+                </h2>
+                <p style={{ margin: '0 0 24px', fontSize: '14px', color: colors.textDim, lineHeight: 1.6 }}>
+                  Open the downloaded <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulseAgent-Setup.exe</span> file and follow the installation. It takes about 10 seconds.
+                </p>
+                <div style={{
+                  background: colors.bg, borderRadius: '12px', padding: '16px', marginBottom: '24px',
+                  border: `1px solid ${colors.border}`,
+                }}>
+                  <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '8px', fontWeight: 600 }}>After installing:</div>
+                  <div style={{ fontSize: '13px', color: colors.textMuted, lineHeight: 1.7 }}>
+                    1. The agent opens automatically<br/>
+                    2. You'll see a TeamPulse icon in your system tray<br/>
+                    3. Click "Next" below to get your connection code
+                  </div>
+                </div>
+                <Btn onClick={generateCode} disabled={setupLoading} style={{
+                  padding: '14px 40px', fontSize: '15px', fontWeight: 700, borderRadius: '12px', width: '100%',
+                }}>
+                  {setupLoading ? 'Generating...' : 'Next — Get Setup Code'}
+                </Btn>
+                <button onClick={finishOnboarding} style={{
+                  background: 'none', border: 'none', color: colors.textDimmer, fontSize: '12px',
+                  cursor: 'pointer', marginTop: '16px', textDecoration: 'underline',
+                }}>
+                  Skip for now
+                </button>
+              </div>
+            )}
+
+            {/* Step 3: Setup Code */}
+            {onboardingStep === 3 && (
+              <div>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔗</div>
+                <h2 style={{ margin: '0 0 8px', fontSize: '22px', fontWeight: 800, color: colors.text }}>
+                  Connect Your Agent
+                </h2>
+                <p style={{ margin: '0 0 20px', fontSize: '14px', color: colors.textDim, lineHeight: 1.6 }}>
+                  Enter this code in the desktop agent to link it to your account. No password needed.
+                </p>
+                <div style={{
+                  background: colors.bg, borderRadius: '14px', padding: '24px', marginBottom: '8px',
+                  border: `1px solid rgba(34,211,238,0.3)`,
+                }}>
+                  <div style={{
+                    fontSize: '36px', fontWeight: 800, letterSpacing: '8px', fontFamily: 'monospace',
+                    background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                  }}>
+                    {setupCode}
+                  </div>
+                </div>
+                <p style={{ margin: '0 0 24px', fontSize: '11px', color: colors.textDimmer }}>
+                  Code expires in 15 minutes
+                </p>
+                <Btn onClick={finishOnboarding} style={{
+                  padding: '14px 40px', fontSize: '15px', fontWeight: 700, borderRadius: '12px', width: '100%',
+                }}>
+                  Done — Start Working
+                </Btn>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

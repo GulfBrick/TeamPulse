@@ -15,7 +15,7 @@
       justify-content: center;
     }
     .container {
-      width: 320px;
+      width: 340px;
       padding: 32px;
       text-align: center;
     }
@@ -30,7 +30,28 @@
     .subtitle {
       font-size: 12px;
       color: #64748b;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #1e293b;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+      color: #fff;
+      border: none;
     }
     input {
       display: block;
@@ -46,7 +67,15 @@
     }
     input:focus { border-color: #22d3ee; }
     input::placeholder { color: #475569; }
-    button {
+    .code-input {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      text-align: center;
+      text-transform: uppercase;
+      font-family: monospace;
+    }
+    button.primary {
       width: 100%;
       padding: 12px;
       border: none;
@@ -58,56 +87,73 @@
       color: #fff;
       margin-top: 4px;
     }
-    button:hover { opacity: 0.9; }
+    button.primary:hover { opacity: 0.9; }
+    button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .error {
       color: #f87171;
       font-size: 12px;
       margin-top: 8px;
     }
-    .status-view {
-      display: none;
+    .hint {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 12px;
+      line-height: 1.5;
     }
-    .status-view.active {
-      display: block;
-    }
+    .status-view { display: none; }
+    .status-view.active { display: block; }
+    .hidden { display: none; }
     .status-dot {
-      width: 12px;
-      height: 12px;
+      width: 12px; height: 12px;
       border-radius: 50%;
       display: inline-block;
       margin-right: 8px;
     }
     .status-dot.tracking { background: #34d399; }
     .status-dot.idle { background: #64748b; }
-    .user-name {
-      font-size: 18px;
-      font-weight: 600;
-      margin: 16px 0 4px;
-    }
-    .status-label {
-      font-size: 14px;
-      color: #94a3b8;
-      margin-bottom: 24px;
-    }
+    .user-name { font-size: 18px; font-weight: 600; margin: 16px 0 4px; }
+    .status-label { font-size: 14px; color: #94a3b8; margin-bottom: 24px; }
     .btn-logout {
+      width: 100%;
       background: transparent;
       border: 1px solid #334155;
       color: #94a3b8;
       padding: 10px;
       margin-top: 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
     }
     .btn-logout:hover { border-color: #f87171; color: #f87171; }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Login Form -->
+    <!-- Login View -->
     <div id="login-view">
       <h1>TeamPulse</h1>
       <p class="subtitle">Desktop Agent</p>
-      <input type="email" id="email" placeholder="Email" autocomplete="email">
-      <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-      <button id="login-btn">Sign In</button>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-code" onclick="switchTab('code')">Setup Code</button>
+        <button class="tab-btn" id="tab-email" onclick="switchTab('email')">Email Login</button>
+      </div>
+
+      <!-- Setup Code Tab -->
+      <div id="code-form">
+        <input type="text" id="setup-code" class="code-input" placeholder="ABC123" maxlength="6" autocomplete="off">
+        <button class="primary" id="code-btn">Connect</button>
+        <p class="hint">Get your 6-character setup code from the TeamPulse web app.</p>
+      </div>
+
+      <!-- Email Login Tab -->
+      <div id="email-form" class="hidden">
+        <input type="email" id="email" placeholder="Email" autocomplete="email">
+        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+        <button class="primary" id="login-btn">Sign In</button>
+      </div>
+
       <div class="error" id="error"></div>
     </div>
 

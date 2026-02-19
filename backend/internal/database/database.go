@@ -49,6 +49,7 @@ func Migrate() {
 		&models.TaskTime{},
 		&models.KPI{},
 		&models.Standup{},
+		&models.AgentSetupToken{},
 		&models.AgentHeartbeat{},
 		&models.Screenshot{},
 	)

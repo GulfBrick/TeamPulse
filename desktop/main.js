@@ -206,6 +206,16 @@ ipcMain.handle('login', async (_event, { email, password }) => {
   return login(email, password);
 });
 
+ipcMain.handle('auth-code', async (_event, { code }) => {
+  const result = await apiClient.authWithCode(code);
+  store.set('token', result.token);
+  store.set('user', result.user);
+  updateTrayMenu();
+  startClockCheck();
+  if (mainWindow) mainWindow.hide();
+  return result;
+});
+
 ipcMain.handle('logout', async () => {
   logout();
 });

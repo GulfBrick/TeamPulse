@@ -29,6 +29,18 @@ class ApiClient {
     return this.request('POST', '/auth/login', { email, password });
   }
 
+  async authWithCode(code) {
+    // Exchange a 6-char setup code for a JWT — no email/password needed
+    const res = await fetch(`${this.baseUrl}/agent/auth-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Invalid code');
+    return data;
+  }
+
   async getClockStatus() {
     return this.request('GET', '/clock/status');
   }

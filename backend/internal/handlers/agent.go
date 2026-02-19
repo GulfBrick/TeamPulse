@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,6 +17,107 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// ─── Setup Token Flow ────────────────────────────────────────
+
+func generateCode() string {
+	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // no 0/O/1/I to avoid confusion
+	code := make([]byte, 6)
+	for i := range code {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(chars))))
+		code[i] = chars[n.Int64()]
+	}
+	return string(code)
+}
+
+// GenerateSetupToken creates a 6-char setup code for the current user.
+// The employee sees this in the web app and pastes it into the desktop agent.
+func GenerateSetupToken(c echo.Context) error {
+	userID := mw.GetUserID(c)
+
+	// Invalidate any existing unused tokens for this user
+	database.DB.Model(&models.AgentSetupToken{}).
+		Where("user_id = ? AND used = false", userID).
+		Update("used", true)
+
+	token := models.AgentSetupToken{
+		UserID:    userID,
+		Code:      generateCode(),
+		ExpiresAt: time.Now().Add(15 * time.Minute),
+	}
+	database.DB.Create(&token)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"code":       token.Code,
+		"expires_at": token.ExpiresAt,
+	})
+}
+
+// ExchangeSetupCode is a PUBLIC endpoint (no JWT required).
+// The desktop agent sends the 6-char code and receives a JWT in return.
+func ExchangeSetupCode(c echo.Context) error {
+	var req struct {
+		Code string `json:"code"`
+	}
+	if err := c.Bind(&req); err != nil || req.Code == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "code is required"})
+	}
+
+	var token models.AgentSetupToken
+	err := database.DB.Where("code = ? AND used = false AND expires_at > ?", req.Code, time.Now()).First(&token).Error
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired code"})
+	}
+
+	// Mark as used
+	database.DB.Model(&token).Update("used", true)
+
+	// Mark user as agent setup done
+	database.DB.Model(&models.User{}).Where("id = ?", token.UserID).Update("agent_setup_done", true)
+
+	// Get user and generate JWT
+	var user models.User
+	database.DB.First(&user, token.UserID)
+
+	jwt, err := mw.GenerateToken(user)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
+	}
+
+	return c.JSON(http.StatusOK, models.LoginResponse{Token: jwt, User: user})
+}
+
+// GetAgentStatus checks if the current user has completed agent setup.
+func GetAgentStatus(c echo.Context) error {
+	userID := mw.GetUserID(c)
+
+	var user models.User
+	database.DB.First(&user, userID)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"agent_setup_done": user.AgentSetupDone,
+	})
+}
+
+// SkipAgentSetup allows an employee to dismiss the onboarding.
+func SkipAgentSetup(c echo.Context) error {
+	userID := mw.GetUserID(c)
+	database.DB.Model(&models.User{}).Where("id = ?", userID).Update("agent_setup_done", true)
+	return c.JSON(http.StatusOK, map[string]string{"status": "skipped"})
+}
+
+// DownloadAgent serves the pre-built .exe installer.
+func DownloadAgent(c echo.Context) error {
+	installerPath := "agent/TeamPulseAgent-Setup.exe"
+	if _, err := os.Stat(installerPath); os.IsNotExist(err) {
+		return c.JSON(http.StatusNotFound, map[string]string{
+			"error": "Agent installer not available yet. Ask your administrator.",
+		})
+	}
+	return c.File(installerPath)
+}
+
+// ─── Heartbeat & Screenshots ─────────────────────────────────
+
 // RecordAgentHeartbeat receives tracking data from the desktop agent.
 func RecordAgentHeartbeat(c echo.Context) error {
 	userID := mw.GetUserID(c)
@@ -23,6 +126,9 @@ func RecordAgentHeartbeat(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
 	}
+
+	// Ensure agent_setup_done is true on first heartbeat
+	database.DB.Model(&models.User{}).Where("id = ? AND agent_setup_done = false", userID).Update("agent_setup_done", true)
 
 	hb := models.AgentHeartbeat{
 		UserID:            userID,
@@ -55,7 +161,6 @@ func UploadScreenshot(c echo.Context) error {
 	}
 	defer src.Close()
 
-	// Store screenshots locally in screenshots/ directory
 	screenshotDir := "screenshots"
 	os.MkdirAll(screenshotDir, 0755)
 
@@ -86,6 +191,8 @@ func UploadScreenshot(c echo.Context) error {
 	})
 }
 
+// ─── Admin Endpoints ─────────────────────────────────────────
+
 // GetScreenshots returns screenshots for admin viewing.
 func GetScreenshots(c echo.Context) error {
 	var screenshots []models.Screenshot
@@ -110,7 +217,6 @@ func GetAgentMonitor(c echo.Context) error {
 			UserName: emp.Name,
 		}
 
-		// Get latest heartbeat for current app info
 		var latest models.AgentHeartbeat
 		if err := database.DB.Where("user_id = ? AND timestamp >= ? AND timestamp < ?", emp.ID, startOfDay, endOfDay).
 			Order("timestamp desc").First(&latest).Error; err == nil {
@@ -118,7 +224,6 @@ func GetAgentMonitor(c echo.Context) error {
 			entry.ActiveWindowTitle = latest.ActiveWindowTitle
 		}
 
-		// Aggregate event counts for today
 		type Sums struct {
 			MouseMoves   int
 			MouseClicks  int
@@ -138,14 +243,12 @@ func GetAgentMonitor(c echo.Context) error {
 		entry.ScrollEvents = sums.ScrollEvents
 		entry.TotalHeartbeats = sums.Count
 
-		// Latest screenshot
 		var ss models.Screenshot
 		if err := database.DB.Where("user_id = ? AND timestamp >= ? AND timestamp < ?", emp.ID, startOfDay, endOfDay).
 			Order("timestamp desc").First(&ss).Error; err == nil {
 			entry.LatestScreenshot = &ss.ImageURL
 		}
 
-		// Only include employees that have agent data
 		if sums.Count > 0 {
 			entries = append(entries, entry)
 		}
@@ -154,7 +257,7 @@ func GetAgentMonitor(c echo.Context) error {
 	return c.JSON(http.StatusOK, entries)
 }
 
-// GetAppUsage returns app usage breakdown for a user (today).
+// GetAppUsage returns app usage breakdown for today.
 func GetAppUsage(c echo.Context) error {
 	today := todayStr()
 	startOfDay, _ := time.Parse("2006-01-02", today)
@@ -177,7 +280,7 @@ func GetAppUsage(c echo.Context) error {
 	for _, r := range results {
 		usage = append(usage, models.AppUsageEntry{
 			App:     r.ActiveApp,
-			Minutes: float64(r.Count), // each heartbeat ≈ 1 minute
+			Minutes: float64(r.Count),
 		})
 	}
 
