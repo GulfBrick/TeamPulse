@@ -474,7 +474,7 @@ export default function EmployeeView() {
                   Run the Installer
                 </h2>
                 <p style={{ margin: '0 0 24px', fontSize: '14px', color: colors.textDim, lineHeight: 1.6 }}>
-                  Extract the downloaded <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulseAgent.zip</span> and run <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulse Agent.exe</span> from the folder.
+                  Extract the downloaded <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulseAgent.zip</span> and run <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulse Agent.exe</span> from inside the <span style={{ color: colors.cyan, fontWeight: 600 }}>win-unpacked</span> folder.
                 </p>
                 <div style={{
                   background: colors.bg, borderRadius: '12px', padding: '16px', marginBottom: '24px',
@@ -483,9 +483,10 @@ export default function EmployeeView() {
                   <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '8px', fontWeight: 600 }}>Steps:</div>
                   <div style={{ fontSize: '13px', color: colors.textMuted, lineHeight: 1.7 }}>
                     1. Extract the zip to any folder<br/>
-                    2. Run "TeamPulse Agent.exe"<br/>
-                    3. You'll see a TeamPulse icon in your system tray<br/>
-                    4. Click "Next" below to get your connection code
+                    2. Open the <strong>win-unpacked</strong> folder inside<br/>
+                    3. Run <strong>"TeamPulse Agent.exe"</strong><br/>
+                    4. You'll see a TeamPulse icon in your system tray<br/>
+                    5. Click "Next" below to get your connection code
                   </div>
                 </div>
                 <Btn onClick={generateCode} disabled={setupLoading} style={{
