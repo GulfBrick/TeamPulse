@@ -345,9 +345,14 @@ export default function AdminView() {
                     </div>
                     <div style={{ fontSize: '12px', color: colors.textDim }}>{emp.email} · {emp.title || 'No title'}</div>
                   </div>
-                  <Btn variant="secondary" onClick={() => { if (confirm('Deactivate this employee?')) { api.deleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px' }}>
-                    Deactivate
-                  </Btn>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <Btn variant="secondary" onClick={() => { if (confirm('Deactivate this employee?')) { api.deleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px' }}>
+                      Deactivate
+                    </Btn>
+                    <Btn variant="secondary" onClick={() => { if (confirm('PERMANENTLY DELETE this employee and ALL their data? This cannot be undone.')) { api.hardDeleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px', borderColor: '#f87171', color: '#f87171' }}>
+                      Delete
+                    </Btn>
+                  </div>
                 </Card>
               ))}
             </div>

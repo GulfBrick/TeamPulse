@@ -68,6 +68,7 @@ class ApiClient {
   createEmployee(data) { return this.request('POST', '/employees', data); }
   updateEmployee(id, data) { return this.request('PUT', `/employees/${id}`, data); }
   deleteEmployee(id) { return this.request('DELETE', `/employees/${id}`); }
+  hardDeleteEmployee(id) { return this.request('DELETE', `/employees/${id}?hard=true`); }
 
   // Clock
   clockIn() { return this.request('POST', '/clock/in'); }

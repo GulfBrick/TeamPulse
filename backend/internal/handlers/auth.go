@@ -160,6 +160,22 @@ func UpdateEmployee(c echo.Context) error {
 
 func DeactivateEmployee(c echo.Context) error {
 	id := c.Param("id")
+
+	// Check if hard delete requested
+	if c.QueryParam("hard") == "true" {
+		// Delete all related data first
+		database.DB.Where("user_id = ?", id).Delete(&models.TimeEntry{})
+		database.DB.Where("user_id = ?", id).Delete(&models.ActivityPing{})
+		database.DB.Where("user_id = ?", id).Delete(&models.TaskTime{})
+		database.DB.Where("user_id = ?", id).Delete(&models.KPI{})
+		database.DB.Where("user_id = ?", id).Delete(&models.Standup{})
+		database.DB.Where("user_id = ?", id).Delete(&models.AgentSetupToken{})
+		database.DB.Where("user_id = ?", id).Delete(&models.AgentHeartbeat{})
+		database.DB.Where("user_id = ?", id).Delete(&models.Screenshot{})
+		database.DB.Unscoped().Where("id = ?", id).Delete(&models.User{})
+		return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
+	}
+
 	database.DB.Model(&models.User{}).Where("id = ?", id).Update("is_active", false)
 	return c.JSON(http.StatusOK, map[string]string{"status": "deactivated"})
 }
