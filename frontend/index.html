@@ -18,20 +18,22 @@
 
       /* ─── Brand Animations ─── */
       @keyframes pulse-glow {
-        0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 200, 255, 0.4)); }
-        50% { filter: drop-shadow(0 0 20px rgba(0, 200, 255, 0.7)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.3)); }
+        0%, 100% { filter: drop-shadow(0 0 12px rgba(0, 200, 255, 0.5)); }
+        50% { filter: drop-shadow(0 0 30px rgba(0, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(139, 92, 246, 0.4)); }
       }
       @keyframes pulse-ring {
-        0% { transform: scale(1); opacity: 0.6; }
-        100% { transform: scale(1.8); opacity: 0; }
-      }
-      @keyframes gradient-shift {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
+        0% { transform: scale(1); opacity: 0.5; }
+        100% { transform: scale(2); opacity: 0; }
       }
       @keyframes fade-in-up {
-        from { opacity: 0; transform: translateY(12px); }
+        from { opacity: 0; transform: translateY(16px); }
         to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes float-orb {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        25% { transform: translate(30px, -40px) scale(1.1); }
+        50% { transform: translate(-20px, -60px) scale(0.95); }
+        75% { transform: translate(40px, -20px) scale(1.05); }
       }
 
       .logo-pulse { animation: pulse-glow 3s ease-in-out infinite; }
@@ -41,14 +43,40 @@
         animation: pulse-ring 3s ease-in-out infinite;
         pointer-events: none;
       }
-      .fade-in { animation: fade-in-up 0.4s ease-out both; }
+      .fade-in { animation: fade-in-up 0.5s ease-out both; }
+
+      /* ─── Floating background orbs ─── */
+      .orb {
+        position: fixed; border-radius: 50%; pointer-events: none;
+        filter: blur(80px); opacity: 0.4;
+        animation: float-orb 20s ease-in-out infinite;
+      }
+      .orb-1 {
+        width: 500px; height: 500px; top: -10%; left: -10%;
+        background: radial-gradient(circle, rgba(34,211,238,0.15), transparent 70%);
+        animation-duration: 25s;
+      }
+      .orb-2 {
+        width: 600px; height: 600px; bottom: -15%; right: -10%;
+        background: radial-gradient(circle, rgba(139,92,246,0.12), transparent 70%);
+        animation-duration: 30s; animation-delay: -5s;
+      }
+      .orb-3 {
+        width: 400px; height: 400px; top: 40%; left: 50%;
+        background: radial-gradient(circle, rgba(59,130,246,0.1), transparent 70%);
+        animation-duration: 22s; animation-delay: -10s;
+      }
 
       /* ─── Focus States ─── */
       input:focus, select:focus, textarea:focus {
         border-color: #22d3ee !important;
-        box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15) !important;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15) !important;
         outline: none;
       }
+
+      /* ─── Button hover glow ─── */
+      button { transition: all 0.2s ease; }
+      button:hover { filter: brightness(1.1); }
     </style>
   </head>
   <body>

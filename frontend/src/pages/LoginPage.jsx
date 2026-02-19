@@ -26,37 +26,53 @@ export default function LoginPage({ onLogin }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: colors.bg,
+      background: colors.bg, position: 'relative', overflow: 'hidden',
     }}>
-      {/* Subtle radial glow behind card */}
+      {/* Animated background orbs */}
+      <div className="orb orb-1" />
+      <div className="orb orb-2" />
+      <div className="orb orb-3" />
+
+      {/* Grid pattern overlay */}
       <div style={{
-        position: 'fixed', top: '30%', left: '50%', transform: 'translate(-50%, -50%)',
-        width: '600px', height: '600px', borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(34,211,238,0.06) 0%, rgba(139,92,246,0.04) 40%, transparent 70%)',
-        pointerEvents: 'none',
+        position: 'fixed', inset: 0, opacity: 0.03, pointerEvents: 'none',
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
+        backgroundSize: '60px 60px',
       }} />
 
       <div className="fade-in" style={{
-        width: '420px', maxWidth: '90vw', background: colors.card, borderRadius: '20px',
-        padding: '48px 40px', border: `1px solid ${colors.border}`, position: 'relative',
-        boxShadow: '0 0 80px rgba(34,211,238,0.04), 0 24px 48px rgba(0,0,0,0.4)',
+        width: '440px', maxWidth: '90vw', background: 'rgba(15, 15, 28, 0.85)', borderRadius: '24px',
+        padding: '56px 44px', border: '1px solid rgba(34,211,238,0.15)', position: 'relative',
+        boxShadow: '0 0 120px rgba(34,211,238,0.08), 0 0 60px rgba(139,92,246,0.06), 0 32px 64px rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(20px)',
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          {/* Logo with pulse */}
-          <div style={{ position: 'relative', display: 'inline-block', marginBottom: '20px' }}>
+        {/* Top gradient line */}
+        <div style={{
+          position: 'absolute', top: 0, left: '20%', right: '20%', height: '2px',
+          background: colors.gradient, borderRadius: '0 0 2px 2px',
+        }} />
+
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          {/* Logo — big and prominent */}
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: '24px' }}>
             <img
               src="/logo.png"
               alt="TeamPulse"
               className="logo-pulse"
-              style={{ width: '64px', height: '64px', objectFit: 'contain', borderRadius: '12px' }}
+              style={{
+                width: '120px', height: '120px', objectFit: 'contain',
+                borderRadius: '20px',
+              }}
             />
-            <div className="logo-ring" />
+            <div className="logo-ring" style={{ inset: '-8px', borderRadius: '24px' }} />
+            {/* Second ring, delayed */}
+            <div className="logo-ring" style={{ inset: '-8px', borderRadius: '24px', animationDelay: '1.5s' }} />
           </div>
           <h1 style={{
-            fontSize: '26px', fontWeight: 800, marginBottom: '6px',
+            fontSize: '32px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px',
             background: colors.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>TeamPulse</h1>
-          <p style={{ fontSize: '13px', color: colors.textDim }}>Sign in to your workspace</p>
+          <p style={{ fontSize: '14px', color: colors.textDim, letterSpacing: '0.3px' }}>Workforce Management Platform</p>
         </div>
 
         <form onSubmit={handleLogin}>
@@ -72,13 +88,17 @@ export default function LoginPage({ onLogin }) {
             </div>
           )}
 
-          <Btn type="submit" style={{ width: '100%', padding: '12px', fontSize: '14px' }} disabled={loading}>
+          <Btn type="submit" style={{
+            width: '100%', padding: '14px', fontSize: '15px', fontWeight: 700,
+            borderRadius: '12px', letterSpacing: '0.3px',
+            boxShadow: '0 4px 24px rgba(34,211,238,0.2), 0 2px 8px rgba(139,92,246,0.15)',
+          }} disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Btn>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <span style={{ fontSize: '11px', color: colors.textDimmer }}>Powered by TeamPulse</span>
+        <div style={{ textAlign: 'center', marginTop: '28px' }}>
+          <span style={{ fontSize: '11px', color: colors.textDimmer, letterSpacing: '0.5px' }}>POWERED BY TEAMPULSE</span>
         </div>
       </div>
     </div>
