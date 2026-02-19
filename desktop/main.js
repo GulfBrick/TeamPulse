@@ -44,7 +44,8 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
-    if (!store.get('token')) {
+    // Don't show if launched hidden at boot and already logged in
+    if (!store.get('token') && !launchedHidden) {
       mainWindow.show();
     }
   });
@@ -68,11 +69,26 @@ function updateTrayMenu() {
   const loggedIn = !!store.get('token');
   const template = [];
 
+  const autoStartEnabled = app.getLoginItemSettings().openAtLogin;
+
   if (loggedIn) {
     template.push(
       { label: `Status: ${isClockedIn ? 'Tracking' : 'Idle'}`, enabled: false },
       { type: 'separator' },
       { label: 'Show Window', click: () => mainWindow?.show() },
+      {
+        label: 'Start with Windows',
+        type: 'checkbox',
+        checked: autoStartEnabled,
+        click: (item) => {
+          app.setLoginItemSettings({
+            openAtLogin: item.checked,
+            path: app.getPath('exe'),
+            args: item.checked ? ['--hidden'] : [],
+          });
+        },
+      },
+      { type: 'separator' },
       { label: 'Logout', click: () => logout() },
     );
   } else {
@@ -228,11 +244,32 @@ ipcMain.handle('get-status', () => {
   };
 });
 
+// ─── Auto-Start on Boot ──────────────────────────────────────
+
+function enableAutoStart() {
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: app.getPath('exe'),
+    args: ['--hidden'],  // launch hidden (straight to tray)
+  });
+}
+
 // ─── App Lifecycle ───────────────────────────────────────────
 
+// Check if launched with --hidden flag (auto-start on boot)
+const launchedHidden = process.argv.includes('--hidden');
+
 app.on('ready', () => {
+  // Register auto-start on first run after login
+  enableAutoStart();
+
   createWindow();
   createTray();
+
+  // If launched at boot with --hidden, don't show the window at all
+  if (launchedHidden && store.get('token')) {
+    // Already logged in, just start silently
+  }
 
   if (store.get('token')) {
     startClockCheck();

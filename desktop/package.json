@@ -29,7 +29,8 @@
     },
     "nsis": {
       "oneClick": true,
-      "perMachine": false
+      "perMachine": false,
+      "runAfterFinish": true
     }
   }
 }
