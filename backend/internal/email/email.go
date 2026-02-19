@@ -36,12 +36,6 @@ func SendWelcomeEmail(name, toEmail, password, loginURL string) error {
 }
 
 func buildWelcomeHTML(name, email, password, loginURL string) string {
-	logoURL := os.Getenv("APP_URL")
-	if logoURL == "" {
-		logoURL = "https://teampulse-production-c56d.up.railway.app"
-	}
-	logoURL += "/logo.png"
-
 	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -53,13 +47,66 @@ func buildWelcomeHTML(name, email, password, loginURL string) string {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="background-color:#0f0f1c;border-radius:16px;overflow:hidden;border:1px solid #1a1a2e;">
-          <!-- Header with logo -->
+          <!-- Header with HTML logo -->
           <tr>
-            <td style="padding:40px 40px 24px;text-align:center;background:linear-gradient(180deg,rgba(34,211,238,0.08),transparent);">
-              <!-- Gradient accent line -->
-              <div style="height:3px;background:linear-gradient(135deg,#22d3ee,#3b82f6,#8b5cf6);border-radius:2px;margin-bottom:32px;"></div>
-              <img src="%s" alt="TeamPulse" width="100" height="100" style="display:block;margin:0 auto 16px;" />
-              <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,#22d3ee,#3b82f6,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">TeamPulse</h1>
+            <td style="padding:40px 40px 24px;text-align:center;">
+              <!-- Gradient accent line top -->
+              <table width="100%%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+                <tr>
+                  <td style="height:3px;background:#22d3ee;border-radius:2px 0 0 2px;width:33%%;"></td>
+                  <td style="height:3px;background:#3b82f6;width:34%%;"></td>
+                  <td style="height:3px;background:#8b5cf6;border-radius:0 2px 2px 0;width:33%%;"></td>
+                </tr>
+              </table>
+              <!-- Logo mark: rounded square with T + pulse -->
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
+                <tr>
+                  <td align="center">
+                    <div style="width:88px;height:88px;border-radius:20px;background:#0a0a18;border:2px solid #22d3ee;display:inline-block;position:relative;text-align:center;line-height:88px;box-shadow:0 0 30px rgba(34,211,238,0.15),0 0 60px rgba(139,92,246,0.08);">
+                      <!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" style="width:88px;height:88px;" arcsize="23%%" fillcolor="#0a0a18" strokecolor="#22d3ee" strokeweight="2px"><v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0"><center><![endif]-->
+                      <table cellpadding="0" cellspacing="0" width="88" style="margin:0 auto;">
+                        <!-- T top bar -->
+                        <tr>
+                          <td style="padding:16px 16px 0;text-align:center;">
+                            <div style="height:6px;background:#22d3ee;border-radius:3px;"></div>
+                          </td>
+                        </tr>
+                        <!-- T stem top -->
+                        <tr>
+                          <td align="center" style="padding:0;">
+                            <div style="width:6px;height:14px;background:#3b82f6;border-radius:2px;margin:0 auto;"></div>
+                          </td>
+                        </tr>
+                        <!-- Pulse line -->
+                        <tr>
+                          <td style="padding:2px 8px;text-align:center;">
+                            <table cellpadding="0" cellspacing="0" width="100%%" style="border-collapse:collapse;">
+                              <tr>
+                                <td style="width:18%%;height:3px;background:#22d3ee;"></td>
+                                <td style="width:10%%;height:3px;background:#22d3ee;transform:rotate(-40deg);"></td>
+                                <td style="width:10%%;height:3px;background:#3b82f6;transform:rotate(50deg);"></td>
+                                <td style="width:10%%;height:3px;background:#3b82f6;transform:rotate(-50deg);"></td>
+                                <td style="width:10%%;height:3px;background:#8b5cf6;transform:rotate(40deg);"></td>
+                                <td style="width:10%%;height:3px;background:#8b5cf6;transform:rotate(-30deg);"></td>
+                                <td style="width:14%%;height:3px;background:#8b5cf6;"></td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                        <!-- T stem bottom -->
+                        <tr>
+                          <td align="center" style="padding:0 0 16px;">
+                            <div style="width:6px;height:12px;background:#8b5cf6;border-radius:2px;margin:0 auto;"></div>
+                          </td>
+                        </tr>
+                      </table>
+                      <!--[if mso]></center></v:textbox></v:roundrect><![endif]-->
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <!-- Brand name -->
+              <h1 style="margin:0;font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#22d3ee;">Team<span style="color:#8b5cf6;">Pulse</span></h1>
               <p style="margin:8px 0 0;color:#64748b;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Workforce Management Platform</p>
             </td>
           </tr>
@@ -116,5 +163,5 @@ func buildWelcomeHTML(name, email, password, loginURL string) string {
     </tr>
   </table>
 </body>
-</html>`, logoURL, name, email, password, loginURL)
+</html>`, name, email, password, loginURL)
 }
