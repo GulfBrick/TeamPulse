@@ -31,7 +31,7 @@ export default function App() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src="/logo.png" alt="TeamPulse" className="logo-pulse" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
+        <img src="/logo.png" alt="TeamPulse" className="logo-pulse" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
       </div>
     );
   }
@@ -56,7 +56,7 @@ export default function App() {
               src="/logo.png"
               alt="TeamPulse"
               className="logo-pulse"
-              style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px' }}
+              style={{ width: '42px', height: '42px', objectFit: 'contain' }}
             />
           </div>
           <span style={{

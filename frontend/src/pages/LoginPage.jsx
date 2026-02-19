@@ -54,19 +54,15 @@ export default function LoginPage({ onLogin }) {
 
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           {/* Logo — big and prominent */}
-          <div style={{ position: 'relative', display: 'inline-block', marginBottom: '24px' }}>
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
             <img
               src="/logo.png"
               alt="TeamPulse"
               className="logo-pulse"
               style={{
-                width: '120px', height: '120px', objectFit: 'contain',
-                borderRadius: '20px',
+                width: '160px', height: '160px', objectFit: 'contain',
               }}
             />
-            <div className="logo-ring" style={{ inset: '-8px', borderRadius: '24px' }} />
-            {/* Second ring, delayed */}
-            <div className="logo-ring" style={{ inset: '-8px', borderRadius: '24px', animationDelay: '1.5s' }} />
           </div>
           <h1 style={{
             fontSize: '32px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px',
