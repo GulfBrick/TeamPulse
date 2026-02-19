@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
+	"os"
 	"regexp"
 
 	"teampulse/internal/database"
+	"teampulse/internal/email"
 	mw "teampulse/internal/middleware"
 	"teampulse/internal/models"
 
@@ -86,6 +89,20 @@ func RegisterEmployee(c echo.Context) error {
 	if err := database.DB.Create(&user).Error; err != nil {
 		return c.JSON(http.StatusConflict, map[string]string{"error": "email already exists"})
 	}
+
+	// Send welcome email in background (don't block the response)
+	plainPassword := req.Password
+	loginURL := os.Getenv("APP_URL")
+	if loginURL == "" {
+		loginURL = "https://teampulse-production-c56d.up.railway.app"
+	}
+	go func() {
+		if err := email.SendWelcomeEmail(req.Name, req.Email, plainPassword, loginURL); err != nil {
+			log.Printf("ERROR: welcome email to %s failed: %v", req.Email, err)
+		} else {
+			log.Printf("INFO: welcome email sent to %s", req.Email)
+		}
+	}()
 
 	user.Password = "" // strip from response
 	return c.JSON(http.StatusCreated, user)
