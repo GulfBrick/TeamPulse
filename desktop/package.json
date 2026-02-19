@@ -24,9 +24,17 @@
     "appId": "com.teampulse.agent",
     "productName": "TeamPulse Agent",
     "win": {
-      "target": ["dir"],
+      "target": ["nsis"],
       "signAndEditExecutable": false,
       "forceCodeSigning": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "runAfterFinish": true,
+      "installerIcon": null,
+      "deleteAppDataOnUninstall": true
     }
   }
 }

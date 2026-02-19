@@ -76,7 +76,7 @@ export default function EmployeeView() {
     // Trigger download
     const link = document.createElement('a');
     link.href = '/api/agent/download';
-    link.download = 'TeamPulseAgent.zip';
+    link.download = 'TeamPulseAgent-Setup.exe';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -474,7 +474,7 @@ export default function EmployeeView() {
                   Run the Installer
                 </h2>
                 <p style={{ margin: '0 0 24px', fontSize: '14px', color: colors.textDim, lineHeight: 1.6 }}>
-                  Extract the downloaded <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulseAgent.zip</span> and run <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulse Agent.exe</span> from inside the <span style={{ color: colors.cyan, fontWeight: 600 }}>win-unpacked</span> folder.
+                  Run the downloaded <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulseAgent-Setup.exe</span> — it installs automatically in seconds.
                 </p>
                 <div style={{
                   background: colors.bg, borderRadius: '12px', padding: '16px', marginBottom: '24px',
@@ -482,9 +482,9 @@ export default function EmployeeView() {
                 }}>
                   <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '8px', fontWeight: 600 }}>Steps:</div>
                   <div style={{ fontSize: '13px', color: colors.textMuted, lineHeight: 1.7 }}>
-                    1. Extract the zip to any folder<br/>
-                    2. Open the <strong>win-unpacked</strong> folder inside<br/>
-                    3. Run <strong>"TeamPulse Agent.exe"</strong><br/>
+                    1. Open the downloaded <strong>TeamPulseAgent-Setup.exe</strong><br/>
+                    2. If Windows SmartScreen appears, click <strong>"More info"</strong> then <strong>"Run anyway"</strong><br/>
+                    3. The app installs and launches automatically<br/>
                     4. You'll see a TeamPulse icon in your system tray<br/>
                     5. Click "Next" below to get your connection code
                   </div>
