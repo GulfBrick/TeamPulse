@@ -68,6 +68,7 @@ func main() {
 	// ─── Public Routes ────────────────────────────────────────
 	e.POST("/api/auth/login", handlers.Login, loginRateLimiter)
 	e.POST("/api/agent/auth-code", handlers.ExchangeSetupCode) // desktop agent exchanges setup code for JWT
+	e.GET("/api/agent/download", handlers.DownloadAgent)        // public so <a> tags work without JWT
 
 	// ─── Authenticated Routes ─────────────────────────────────
 	api := e.Group("/api", mw.JWTMiddleware)
@@ -115,7 +116,6 @@ func main() {
 	api.POST("/agent/setup-token", handlers.GenerateSetupToken)
 	api.GET("/agent/status", handlers.GetAgentStatus)
 	api.POST("/agent/skip-setup", handlers.SkipAgentSetup)
-	api.GET("/agent/download", handlers.DownloadAgent)
 
 	// ─── Admin Routes ─────────────────────────────────────────
 	admin := api.Group("", mw.AdminOnly)
