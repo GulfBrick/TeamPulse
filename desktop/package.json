@@ -24,13 +24,9 @@
     "appId": "com.teampulse.agent",
     "productName": "TeamPulse Agent",
     "win": {
-      "target": "nsis",
-      "icon": "icon.ico"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "runAfterFinish": true
+      "target": ["dir"],
+      "signAndEditExecutable": false,
+      "forceCodeSigning": false
     }
   }
 }

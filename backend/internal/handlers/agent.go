@@ -105,15 +105,27 @@ func SkipAgentSetup(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "skipped"})
 }
 
-// DownloadAgent serves the pre-built .exe installer.
+// DownloadAgent serves the pre-built agent zip.
 func DownloadAgent(c echo.Context) error {
-	installerPath := "agent/TeamPulseAgent-Setup.exe"
-	if _, err := os.Stat(installerPath); os.IsNotExist(err) {
-		return c.JSON(http.StatusNotFound, map[string]string{
-			"error": "Agent installer not available yet. Ask your administrator.",
-		})
+	// Try zip first, then exe
+	paths := []struct {
+		file string
+		name string
+	}{
+		{"agent/TeamPulseAgent.zip", "TeamPulseAgent.zip"},
+		{"agent/TeamPulseAgent-Setup.exe", "TeamPulseAgent-Setup.exe"},
 	}
-	return c.File(installerPath)
+
+	for _, p := range paths {
+		if _, err := os.Stat(p.file); err == nil {
+			c.Response().Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, p.name))
+			return c.File(p.file)
+		}
+	}
+
+	return c.JSON(http.StatusNotFound, map[string]string{
+		"error": "Agent installer not available yet. Ask your administrator.",
+	})
 }
 
 // ─── Heartbeat & Screenshots ─────────────────────────────────
