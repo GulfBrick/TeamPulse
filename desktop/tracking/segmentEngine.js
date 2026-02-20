@@ -89,11 +89,32 @@ class SegmentEngine {
 
   /**
    * Flush all completed segments and return them.
-   * Keeps current open segment alive.
+   * Splits the current open segment at the flush boundary so data is sent regularly.
    */
   flush() {
     // Tick to check idle state before flushing
     this.tick();
+
+    // Split the current open segment: close it now and reopen a continuation
+    // This ensures data is sent every flush cycle instead of waiting for app change/idle
+    if (this._currentSegment) {
+      const now = Date.now();
+      const duration = now - this._currentSegment.startTime;
+
+      if (duration >= 1000) {
+        // Close current segment at this moment
+        this._currentSegment.endTime = now;
+        this._completedSegments.push({ ...this._currentSegment });
+
+        // Reopen a continuation segment with the same app/type
+        this._openSegment(
+          this._currentSegment.segmentType,
+          this._currentSegment.appName,
+          this._currentSegment.windowTitle,
+          now
+        );
+      }
+    }
 
     const segments = this._completedSegments.map(seg => ({
       start_time: new Date(seg.startTime).toISOString(),

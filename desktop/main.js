@@ -202,6 +202,7 @@ function startTracking() {
 
   sendHeartbeat(); // immediate first heartbeat
   heartbeatInterval = setInterval(sendHeartbeat, 5_000);
+  processSegments(); // immediate first segment flush
   segmentInterval = setInterval(processSegments, 5_000);
 
   // Take screenshot every 2 minutes

@@ -64,7 +64,7 @@ func ReceiveSegments(c echo.Context) error {
 		}
 
 		duration := int(endTime.Sub(startTime).Seconds())
-		date := startTime.Format("2006-01-02")
+		date := startTime.Local().Format("2006-01-02")
 
 		// Privacy: filter sensitive window titles
 		windowTitle := filterWindowTitle(seg.WindowTitle)
