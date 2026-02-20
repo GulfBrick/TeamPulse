@@ -141,8 +141,8 @@ function startTracking() {
   inputTracker.start();
   windowTracker.start();
 
-  // Send heartbeat every 60 seconds
-  heartbeatInterval = setInterval(async () => {
+  // Send first heartbeat immediately
+  const sendHeartbeat = async () => {
     try {
       const inputData = inputTracker.flush();
       const windowData = windowTracker.getCurrent();
@@ -159,10 +159,14 @@ function startTracking() {
     } catch (err) {
       console.error('Heartbeat failed:', err.message);
     }
-  }, 60_000);
+  };
 
-  // Take screenshot every 5 minutes
-  screenshotCapture.startInterval(5 * 60_000, async (buffer) => {
+  sendHeartbeat(); // immediate first heartbeat
+  // Send heartbeat every 5 seconds for real-time tracking
+  heartbeatInterval = setInterval(sendHeartbeat, 5_000);
+
+  // Take screenshot every 2 minutes
+  screenshotCapture.startInterval(2 * 60_000, async (buffer) => {
     try {
       await apiClient.uploadScreenshot(buffer);
     } catch (err) {

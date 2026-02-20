@@ -239,16 +239,19 @@ type AgentHeartbeatRequest struct {
 }
 
 type AgentMonitorEntry struct {
-	UserID            uint    `json:"user_id"`
-	UserName          string  `json:"user_name"`
-	ActiveApp         string  `json:"active_app"`
-	ActiveWindowTitle string  `json:"active_window_title"`
-	MouseMoves        int     `json:"mouse_moves"`
-	MouseClicks       int     `json:"mouse_clicks"`
-	Keystrokes        int     `json:"keystrokes"`
-	ScrollEvents      int     `json:"scroll_events"`
-	TotalHeartbeats   int     `json:"total_heartbeats"`
-	LatestScreenshot  *string `json:"latest_screenshot"`
+	UserID            uint      `json:"user_id"`
+	UserName          string    `json:"user_name"`
+	ActiveApp         string    `json:"active_app"`
+	ActiveWindowTitle string    `json:"active_window_title"`
+	MouseMoves        int       `json:"mouse_moves"`
+	MouseClicks       int       `json:"mouse_clicks"`
+	Keystrokes        int       `json:"keystrokes"`
+	ScrollEvents      int       `json:"scroll_events"`
+	TotalHeartbeats   int       `json:"total_heartbeats"`
+	LatestScreenshot  *string   `json:"latest_screenshot"`
+	LastSeen          time.Time `json:"last_seen"`
+	IsOnline          bool      `json:"is_online"`
+	IdleSeconds       int       `json:"idle_seconds"`
 }
 
 type AppUsageEntry struct {

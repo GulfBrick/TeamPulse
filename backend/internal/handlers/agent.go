@@ -240,6 +240,9 @@ func GetAgentMonitor(c echo.Context) error {
 			Order("timestamp desc").First(&latest).Error; err == nil {
 			entry.ActiveApp = latest.ActiveApp
 			entry.ActiveWindowTitle = latest.ActiveWindowTitle
+			entry.LastSeen = latest.Timestamp
+			entry.IdleSeconds = latest.IdleSeconds
+			entry.IsOnline = time.Since(latest.Timestamp) < 15*time.Second
 		}
 
 		type Sums struct {

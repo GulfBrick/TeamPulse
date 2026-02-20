@@ -1,18 +1,20 @@
 /**
  * Tracks the currently active window (app name + title).
- * Uses the `active-win` package.
+ * Uses the `active-win` package for system-wide window detection.
  */
 
 let activeWin;
 try {
   activeWin = require('active-win');
-} catch {
+} catch (err) {
+  console.error('active-win failed to load:', err.message);
   activeWin = null;
 }
 
 class WindowTracker {
   constructor() {
     this._current = { app: '', title: '' };
+    this._history = []; // track app switches
     this._interval = null;
   }
 
@@ -24,10 +26,21 @@ class WindowTracker {
         if (!activeWin) return;
         const win = await activeWin();
         if (win) {
-          this._current = {
-            app: win.owner?.name || '',
-            title: win.title || '',
-          };
+          const app = win.owner?.name || '';
+          const title = win.title || '';
+
+          // Track app change
+          if (app !== this._current.app) {
+            this._history.push({
+              app,
+              title,
+              timestamp: new Date().toISOString(),
+            });
+            // Keep last 100 entries
+            if (this._history.length > 100) this._history.shift();
+          }
+
+          this._current = { app, title };
         }
       } catch {
         // ignore polling errors
@@ -35,11 +48,18 @@ class WindowTracker {
     };
 
     poll(); // immediate first read
-    this._interval = setInterval(poll, 5000); // poll every 5 seconds
+    this._interval = setInterval(poll, 2000); // poll every 2 seconds
   }
 
   getCurrent() {
     return { ...this._current };
+  }
+
+  /** Returns recent app switches and clears the history */
+  flushHistory() {
+    const history = [...this._history];
+    this._history = [];
+    return history;
   }
 
   stop() {

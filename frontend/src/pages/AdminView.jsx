@@ -63,6 +63,24 @@ export default function AdminView() {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Auto-refresh monitoring tab every 5 seconds for real-time tracking
+  useEffect(() => {
+    if (tab !== 'monitoring') return;
+    const interval = setInterval(async () => {
+      try {
+        const [am, asc, au] = await Promise.all([
+          api.getAgentMonitor().catch(() => []),
+          api.getAgentScreenshots().catch(() => []),
+          api.getAppUsage().catch(() => []),
+        ]);
+        setAgentMonitor(am);
+        setAgentScreenshots(asc);
+        setAppUsage(au);
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [tab]);
+
   // ─── Handlers ───────────────────────────────────────────────
 
   const addEmployee = async () => {
@@ -562,20 +580,32 @@ export default function AdminView() {
                       padding: '12px 0', borderBottom: i < agentMonitor.length - 1 ? `1px solid ${colors.border}` : 'none',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '13px', color: colors.text, fontWeight: 600 }}>{m.user_name}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block',
+                            background: m.is_online ? '#34d399' : '#64748b',
+                            boxShadow: m.is_online ? '0 0 6px rgba(52,211,153,0.5)' : 'none',
+                          }} />
+                          <span style={{ fontSize: '13px', color: colors.text, fontWeight: 600 }}>{m.user_name}</span>
+                          <span style={{ fontSize: '10px', color: m.is_online ? '#34d399' : colors.textDimmer, fontWeight: 600 }}>
+                            {m.is_online ? 'ONLINE' : 'OFFLINE'}
+                          </span>
+                        </div>
                         <span style={{
                           fontSize: '12px', fontWeight: 500, padding: '2px 8px', borderRadius: '6px',
-                          background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)',
+                          background: m.is_online ? 'rgba(139,92,246,0.1)' : 'rgba(100,116,139,0.1)',
+                          color: m.is_online ? '#a78bfa' : colors.textDim,
+                          border: `1px solid ${m.is_online ? 'rgba(139,92,246,0.2)' : 'rgba(100,116,139,0.2)'}`,
                         }}>
-                          {m.active_app || 'Unknown'}
+                          {m.active_app || 'No app'}
                         </span>
                       </div>
                       {m.active_window_title && (
-                        <div style={{ fontSize: '11px', color: colors.textDim, marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '11px', color: colors.textDim, marginBottom: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
                           {m.active_window_title}
                         </div>
                       )}
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
                           <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.mouse_moves}</span> moves
                         </span>
@@ -588,8 +618,13 @@ export default function AdminView() {
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
                           <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.scroll_events}</span> scrolls
                         </span>
-                        <span style={{ fontSize: '11px', color: colors.textDimmer }}>
-                          {m.total_heartbeats} heartbeats
+                        {m.idle_seconds > 0 && (
+                          <span style={{ fontSize: '11px', color: m.idle_seconds > 60 ? '#f87171' : colors.textDimmer }}>
+                            idle {m.idle_seconds}s
+                          </span>
+                        )}
+                        <span style={{ fontSize: '10px', color: colors.textDimmer, marginLeft: 'auto' }}>
+                          {m.total_heartbeats} pings
                         </span>
                       </div>
                     </div>

@@ -6,8 +6,8 @@
 let uIOhook;
 try {
   uIOhook = require('uiohook-napi').uIOhook;
-} catch {
-  // Fallback: stub if native module fails to load
+} catch (err) {
+  console.error('uiohook-napi failed to load:', err.message);
   uIOhook = null;
 }
 
@@ -23,8 +23,13 @@ class InputTracker {
   }
 
   start() {
-    if (!uIOhook || this._running) return;
+    if (this._running) return;
     this._running = true;
+
+    if (!uIOhook) {
+      console.warn('InputTracker: uiohook not available, using fallback (no system-wide tracking)');
+      return;
+    }
 
     uIOhook.on('mousemove', () => {
       this.lastActivityTime = Date.now();
@@ -51,7 +56,12 @@ class InputTracker {
       this.scrollEvents++;
     });
 
-    uIOhook.start();
+    try {
+      uIOhook.start();
+      console.log('InputTracker: uiohook started successfully');
+    } catch (err) {
+      console.error('InputTracker: uiohook.start() failed:', err.message);
+    }
   }
 
   /**
@@ -75,9 +85,11 @@ class InputTracker {
   }
 
   stop() {
-    if (!uIOhook || !this._running) return;
-    uIOhook.stop();
+    if (!this._running) return;
     this._running = false;
+    if (uIOhook) {
+      try { uIOhook.stop(); } catch { /* ignore */ }
+    }
   }
 }
 
