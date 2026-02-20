@@ -452,7 +452,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                   <div key={i} style={{ marginBottom: '8px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
                       <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{a.app}</span>
-                      <span style={{ fontSize: '12px', color: colors.textDim }}>{Math.round(a.minutes)} min</span>
+                      <span style={{ fontSize: '12px', color: colors.textDim }}>{a.minutes < 1 ? '<1 min' : `${Math.round(a.minutes)} min`}</span>
                     </div>
                     <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                       <div style={{
@@ -896,7 +896,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                       <div key={i} style={{ marginBottom: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{a.app}</span>
-                          <span style={{ fontSize: '12px', color: colors.textDim }}>{Math.round(a.minutes)} min</span>
+                          <span style={{ fontSize: '12px', color: colors.textDim }}>{a.minutes < 1 ? '<1 min' : `${Math.round(a.minutes)} min`}</span>
                         </div>
                         <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                           <div style={{

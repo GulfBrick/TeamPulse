@@ -321,7 +321,7 @@ func GetAppUsage(c echo.Context) error {
 	for _, r := range results {
 		usage = append(usage, models.AppUsageEntry{
 			App:     r.ActiveApp,
-			Minutes: float64(r.Count),
+			Minutes: float64(r.Count) * 5.0 / 60.0,
 		})
 	}
 
