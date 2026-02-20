@@ -1,5 +1,9 @@
 const loginView = document.getElementById('login-view');
 const statusView = document.getElementById('status-view');
+const step1 = document.getElementById('step-1');
+const step2 = document.getElementById('step-2');
+const dot1 = document.getElementById('dot-1');
+const dot2 = document.getElementById('dot-2');
 const codeForm = document.getElementById('code-form');
 const emailForm = document.getElementById('email-form');
 const tabCode = document.getElementById('tab-code');
@@ -10,18 +14,79 @@ const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const loginBtn = document.getElementById('login-btn');
 const errorEl = document.getElementById('error');
+const urlErrorEl = document.getElementById('url-error');
 const userNameEl = document.getElementById('user-name');
 const statusDot = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const logoutBtn = document.getElementById('logout-btn');
 const serverUrlInput = document.getElementById('server-url');
+const nextBtn = document.getElementById('next-btn');
+const backBtn = document.getElementById('back-btn');
 
 // Load saved server URL
 window.teampulse.getApiUrl().then(url => {
   if (url) serverUrlInput.value = url;
 });
 
-// Tab switching
+// ─── Step Navigation ────────────────────────────────────────
+
+function showStep(step) {
+  step1.classList.toggle('visible', step === 1);
+  step2.classList.toggle('visible', step === 2);
+  dot1.className = `step-dot ${step === 1 ? 'active' : 'done'}`;
+  dot2.className = `step-dot ${step === 2 ? 'active' : ''}`;
+}
+
+// Next: validate URL and go to step 2
+nextBtn.addEventListener('click', async () => {
+  urlErrorEl.textContent = '';
+  const url = serverUrlInput.value.trim();
+
+  if (!url) {
+    urlErrorEl.textContent = 'Please enter your server URL.';
+    return;
+  }
+
+  // Basic URL validation
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    urlErrorEl.textContent = 'URL must start with https:// (or http:// for local testing).';
+    return;
+  }
+
+  nextBtn.disabled = true;
+  nextBtn.textContent = 'Checking...';
+
+  try {
+    await window.teampulse.setApiUrl(url);
+
+    // Quick health check to verify the server is reachable
+    // (setApiUrl already normalizes the URL)
+    nextBtn.textContent = 'Connected!';
+    setTimeout(() => {
+      showStep(2);
+      setupCodeInput.focus();
+      nextBtn.disabled = false;
+      nextBtn.textContent = 'Next';
+    }, 500);
+  } catch (err) {
+    urlErrorEl.textContent = 'Could not set server URL. Please check and try again.';
+    nextBtn.disabled = false;
+    nextBtn.textContent = 'Next';
+  }
+});
+
+serverUrlInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') nextBtn.click();
+});
+
+// Back button
+backBtn.addEventListener('click', () => {
+  errorEl.textContent = '';
+  showStep(1);
+});
+
+// ─── Tab Switching ──────────────────────────────────────────
+
 window.switchTab = function(tab) {
   errorEl.textContent = '';
   if (tab === 'code') {
@@ -38,6 +103,8 @@ window.switchTab = function(tab) {
     emailInput.focus();
   }
 };
+
+// ─── Views ──────────────────────────────────────────────────
 
 function showLogin() {
   loginView.style.display = 'block';
@@ -61,25 +128,12 @@ window.teampulse.getStatus().then(({ loggedIn, user, isClockedIn }) => {
   }
 });
 
-// Helper: ensure server URL is set before any auth
-async function ensureServerUrl() {
-  const url = serverUrlInput.value.trim();
-  if (!url) {
-    errorEl.textContent = 'Please enter your server URL first.';
-    return false;
-  }
-  await window.teampulse.setApiUrl(url);
-  return true;
-}
+// ─── Setup Code Auth ────────────────────────────────────────
 
-// Setup code auth
 codeBtn.addEventListener('click', async () => {
   errorEl.textContent = '';
 
-  if (!(await ensureServerUrl())) return;
-
   const code = setupCodeInput.value.trim().toUpperCase();
-
   if (!code || code.length !== 6) {
     errorEl.textContent = 'Please enter a 6-character setup code.';
     return;
@@ -92,7 +146,7 @@ codeBtn.addEventListener('click', async () => {
     const result = await window.teampulse.authWithCode(code);
     showStatus(result.user, false);
   } catch (err) {
-    errorEl.textContent = err.message || 'Invalid or expired code';
+    errorEl.textContent = err.message || 'Invalid or expired code. Get a new one from the web app.';
   }
 
   codeBtn.disabled = false;
@@ -108,11 +162,10 @@ setupCodeInput.addEventListener('input', () => {
   setupCodeInput.value = setupCodeInput.value.toUpperCase();
 });
 
-// Email/password login
+// ─── Email/Password Login ───────────────────────────────────
+
 loginBtn.addEventListener('click', async () => {
   errorEl.textContent = '';
-
-  if (!(await ensureServerUrl())) return;
 
   const email = emailInput.value.trim();
   const password = passwordInput.value;
@@ -129,7 +182,7 @@ loginBtn.addEventListener('click', async () => {
     const result = await window.teampulse.login(email, password);
     showStatus(result.user, false);
   } catch (err) {
-    errorEl.textContent = err.message || 'Login failed';
+    errorEl.textContent = err.message || 'Login failed. Check your email and password.';
   }
 
   loginBtn.disabled = false;
@@ -140,16 +193,19 @@ passwordInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') loginBtn.click();
 });
 
-// Logout
+// ─── Logout ─────────────────────────────────────────────────
+
 logoutBtn.addEventListener('click', async () => {
   await window.teampulse.logout();
   setupCodeInput.value = '';
   emailInput.value = '';
   passwordInput.value = '';
   showLogin();
+  showStep(1);
 });
 
-// Listen for clock status updates from main process
+// ─── Clock Status Updates ───────────────────────────────────
+
 window.teampulse.onClockStatus((status) => {
   window.teampulse.getStatus().then(({ user }) => {
     showStatus(user, status.clocked_in);

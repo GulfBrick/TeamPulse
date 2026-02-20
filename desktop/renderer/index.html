@@ -15,7 +15,7 @@
       justify-content: center;
     }
     .container {
-      width: 340px;
+      width: 380px;
       padding: 32px;
       text-align: center;
     }
@@ -32,27 +32,75 @@
       color: #64748b;
       margin-bottom: 24px;
     }
-    .tabs {
+
+    /* Steps indicator */
+    .steps {
       display: flex;
-      gap: 4px;
-      margin-bottom: 20px;
       justify-content: center;
+      gap: 8px;
+      margin-bottom: 24px;
     }
-    .tab-btn {
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      background: transparent;
-      color: #64748b;
-      border: 1px solid #1e293b;
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      background: #1e293b;
+      transition: all 0.3s;
     }
-    .tab-btn.active {
+    .step-dot.active {
+      width: 24px;
       background: linear-gradient(135deg, #22d3ee, #8b5cf6);
-      color: #fff;
-      border: none;
     }
+    .step-dot.done {
+      background: #34d399;
+    }
+
+    /* Step sections */
+    .step-section { display: none; }
+    .step-section.visible { display: block; }
+
+    .step-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+    .step-desc {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    /* Info box */
+    .info-box {
+      background: #13131f;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: left;
+      margin-bottom: 16px;
+    }
+    .info-box .label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .info-box p {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .info-box .highlight {
+      color: #22d3ee;
+      font-weight: 600;
+    }
+
+    /* Inputs */
     input {
       display: block;
       width: 100%;
@@ -75,6 +123,11 @@
       text-transform: uppercase;
       font-family: monospace;
     }
+    .url-input {
+      font-size: 12px;
+    }
+
+    /* Buttons */
     button.primary {
       width: 100%;
       padding: 12px;
@@ -89,10 +142,25 @@
     }
     button.primary:hover { opacity: 0.9; }
     button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: #94a3b8;
+      margin-top: 8px;
+    }
+    button.secondary:hover { border-color: #22d3ee; color: #22d3ee; }
+
     .error {
       color: #f87171;
       font-size: 12px;
       margin-top: 8px;
+      min-height: 16px;
     }
     .hint {
       font-size: 11px;
@@ -100,6 +168,31 @@
       margin-top: 12px;
       line-height: 1.5;
     }
+
+    /* Tabs (for step 2) */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      justify-content: center;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #64748b;
+      border: 1px solid #1e293b;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #22d3ee, #8b5cf6);
+      color: #fff;
+      border: none;
+    }
+
+    /* Status view */
     .status-view { display: none; }
     .status-view.active { display: block; }
     .hidden { display: none; }
@@ -109,7 +202,7 @@
       display: inline-block;
       margin-right: 8px;
     }
-    .status-dot.tracking { background: #34d399; }
+    .status-dot.tracking { background: #34d399; box-shadow: 0 0 8px rgba(52,211,153,0.5); }
     .status-dot.idle { background: #64748b; }
     .user-name { font-size: 18px; font-weight: 600; margin: 16px 0 4px; }
     .status-label { font-size: 14px; color: #94a3b8; margin-bottom: 24px; }
@@ -133,30 +226,74 @@
     <!-- Login View -->
     <div id="login-view">
       <h1>TeamPulse</h1>
-      <p class="subtitle">Desktop Agent</p>
+      <p class="subtitle">Desktop Agent Setup</p>
 
-      <input type="url" id="server-url" placeholder="Server URL (e.g. https://yourserver.up.railway.app)" style="font-size:12px; margin-bottom:16px;">
-
-      <div class="tabs">
-        <button class="tab-btn active" id="tab-code" onclick="switchTab('code')">Setup Code</button>
-        <button class="tab-btn" id="tab-email" onclick="switchTab('email')">Email Login</button>
+      <!-- Step indicators -->
+      <div class="steps">
+        <div class="step-dot active" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
       </div>
 
-      <!-- Setup Code Tab -->
-      <div id="code-form">
-        <input type="text" id="setup-code" class="code-input" placeholder="ABC123" maxlength="6" autocomplete="off">
-        <button class="primary" id="code-btn">Connect</button>
-        <p class="hint">Get your 6-character setup code from the TeamPulse web app.</p>
+      <!-- ═══ STEP 1: Server URL ═══ -->
+      <div id="step-1" class="step-section visible">
+        <div class="step-title">Connect to your server</div>
+        <div class="step-desc">
+          Enter the URL your admin gave you. This is where TeamPulse is hosted.
+        </div>
+
+        <div class="info-box">
+          <div class="label">Where do I find this?</div>
+          <p>Your admin will share the server URL with you. It usually looks like:</p>
+          <p style="margin-top:6px;">
+            <span class="highlight">https://yourcompany.up.railway.app</span>
+          </p>
+          <p style="margin-top:6px;">It's the same URL you use to open TeamPulse in your browser.</p>
+        </div>
+
+        <input type="url" id="server-url" class="url-input" placeholder="https://yourcompany.up.railway.app">
+
+        <button class="primary" id="next-btn">Next</button>
+        <div class="error" id="url-error"></div>
       </div>
 
-      <!-- Email Login Tab -->
-      <div id="email-form" class="hidden">
-        <input type="email" id="email" placeholder="Email" autocomplete="email">
-        <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-        <button class="primary" id="login-btn">Sign In</button>
-      </div>
+      <!-- ═══ STEP 2: Authentication ═══ -->
+      <div id="step-2" class="step-section">
+        <div class="step-title">Sign in to your account</div>
+        <div class="step-desc">
+          Use a setup code from the web app, or sign in with your email.
+        </div>
 
-      <div class="error" id="error"></div>
+        <div class="tabs">
+          <button class="tab-btn active" id="tab-code" onclick="switchTab('code')">Setup Code</button>
+          <button class="tab-btn" id="tab-email" onclick="switchTab('email')">Email Login</button>
+        </div>
+
+        <!-- Setup Code Tab -->
+        <div id="code-form">
+          <div class="info-box">
+            <div class="label">How to get a setup code</div>
+            <p>1. Log in to TeamPulse in your browser</p>
+            <p>2. You'll see a setup code on screen (6 characters)</p>
+            <p>3. Paste it below — no password needed!</p>
+          </div>
+          <input type="text" id="setup-code" class="code-input" placeholder="ABC123" maxlength="6" autocomplete="off">
+          <button class="primary" id="code-btn">Connect</button>
+        </div>
+
+        <!-- Email Login Tab -->
+        <div id="email-form" class="hidden">
+          <div class="info-box">
+            <div class="label">Use your TeamPulse credentials</div>
+            <p>The same email and password you use to log in on the web.</p>
+          </div>
+          <input type="email" id="email" placeholder="Email" autocomplete="email">
+          <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+          <button class="primary" id="login-btn">Sign In</button>
+        </div>
+
+        <button class="secondary" id="back-btn">&#8592; Change Server URL</button>
+        <div class="error" id="error"></div>
+      </div>
     </div>
 
     <!-- Status View -->
@@ -167,7 +304,10 @@
         <span class="status-dot" id="status-dot"></span>
         <span id="status-text">Checking...</span>
       </div>
-      <p class="subtitle">The agent runs in your system tray. You can close this window.</p>
+      <div class="info-box" style="text-align:center;">
+        <p>The agent runs in your <span class="highlight">system tray</span> (bottom-right of your taskbar). You can close this window — tracking continues in the background.</p>
+        <p style="margin-top:8px;">Activity is only tracked while you're <span class="highlight">clocked in</span> on the web app.</p>
+      </div>
       <button class="btn-logout" id="logout-btn">Sign Out</button>
     </div>
   </div>
