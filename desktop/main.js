@@ -7,6 +7,7 @@ const { WindowTracker } = require('./tracking/windowTracker');
 const { ScreenshotCapture } = require('./tracking/screenshotCapture');
 const { SegmentEngine } = require('./tracking/segmentEngine');
 const { LocalQueue } = require('./tracking/localQueue');
+const { initAutoUpdater, checkForUpdates, isUpdateDownloaded, quitAndInstall, stopUpdateChecks } = require('./updates/autoUpdater');
 
 const store = new Store();
 const apiClient = new ApiClient(store);
@@ -100,6 +101,14 @@ function updateTrayMenu() {
     template.push(
       { label: 'Login', click: () => mainWindow?.show() },
     );
+  }
+
+  template.push({ type: 'separator' });
+
+  if (isUpdateDownloaded()) {
+    template.push({ label: 'Restart to Update', click: () => { app.isQuitting = true; quitAndInstall(); } });
+  } else {
+    template.push({ label: 'Check for Updates', click: () => checkForUpdates() });
   }
 
   template.push(
@@ -333,6 +342,7 @@ app.on('ready', () => {
 
   createWindow();
   createTray();
+  initAutoUpdater();
 
   // If launched at boot with --hidden, don't show the window at all
   if (launchedHidden && store.get('token')) {
@@ -351,5 +361,6 @@ app.on('window-all-closed', (e) => {
 
 app.on('before-quit', () => {
   stopTracking();
+  stopUpdateChecks();
   if (localQueue) { localQueue.close(); localQueue = null; }
 });

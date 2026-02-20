@@ -1,6 +1,6 @@
 {
   "name": "teampulse-agent",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TeamPulse Desktop Agent — system-wide activity tracking",
   "main": "main.js",
   "scripts": {
@@ -12,7 +12,9 @@
     "active-win": "^8.1.0",
     "screenshot-desktop": "^1.15.0",
     "uiohook-napi": "^1.5.4",
+    "electron-log": "^5.1.0",
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.0",
     "form-data": "^4.0.0",
     "node-fetch": "^2.7.0"
   },
@@ -28,6 +30,13 @@
       "signAndEditExecutable": false,
       "forceCodeSigning": false
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "GulfBrick",
+        "repo": "TeamPulse"
+      }
+    ],
     "nsis": {
       "oneClick": true,
       "perMachine": false,
