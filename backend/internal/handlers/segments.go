@@ -133,8 +133,8 @@ func updateDailyAggregation(userID uint, date string) {
 
 	// Top apps
 	type AppDur struct {
-		AppName  string
-		Duration int
+		AppName  string `json:"AppName"`
+		Duration int    `json:"Duration"`
 	}
 	var topApps []AppDur
 	database.DB.Model(&models.ActivitySegment{}).
