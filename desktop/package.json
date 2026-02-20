@@ -10,12 +10,10 @@
   },
   "dependencies": {
     "active-win": "^8.1.0",
-    "screenshot-desktop": "^1.15.0",
     "uiohook-napi": "^1.5.4",
     "electron-log": "^5.1.0",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.0",
-    "form-data": "^4.0.0",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {

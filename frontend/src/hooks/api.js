@@ -114,7 +114,6 @@ class ApiClient {
 
   // Agent monitoring (admin)
   getAgentMonitor() { return this.request('GET', '/agent/monitor'); }
-  getAgentScreenshots() { return this.request('GET', '/agent/screenshots'); }
   getAppUsage() { return this.request('GET', '/agent/app-usage'); }
 
   // Agent setup (employee)
@@ -131,8 +130,6 @@ class ApiClient {
   getAggregations(date) { return this.request('GET', `/aggregations${date ? `?date=${date}` : ''}`); }
   getEmployeeTimeline(id, date) { return this.request('GET', `/employee/${id}/timeline${date ? `?date=${date}` : ''}`); }
 
-  // Employee management
-  updateEmployeeScreenshots(id, enabled) { return this.request('PUT', `/employees/${id}`, { screenshots_enabled: enabled }); }
 }
 
 export const api = new ApiClient();

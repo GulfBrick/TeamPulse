@@ -3,11 +3,9 @@ package handlers
 import (
 	"crypto/rand"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	"teampulse/internal/database"
@@ -134,7 +132,7 @@ func DownloadAgent(c echo.Context) error {
 	})
 }
 
-// ─── Heartbeat & Screenshots ─────────────────────────────────
+// ─── Heartbeat ───────────────────────────────────────────────
 
 // RecordAgentHeartbeat receives tracking data from the desktop agent.
 func RecordAgentHeartbeat(c echo.Context) error {
@@ -173,70 +171,7 @@ func RecordAgentHeartbeat(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "recorded"})
 }
 
-// UploadScreenshot receives a screenshot from the desktop agent.
-func UploadScreenshot(c echo.Context) error {
-	userID := mw.GetUserID(c)
-
-	// Check if screenshots are enabled for this user
-	var user models.User
-	if err := database.DB.First(&user, userID).Error; err == nil {
-		if !user.ScreenshotsEnabled {
-			return c.JSON(http.StatusOK, map[string]string{"status": "screenshots_disabled"})
-		}
-	}
-
-	file, err := c.FormFile("screenshot")
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "no screenshot file"})
-	}
-
-	src, err := file.Open()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to read file"})
-	}
-	defer src.Close()
-
-	screenshotDir := "screenshots"
-	os.MkdirAll(screenshotDir, 0755)
-
-	filename := fmt.Sprintf("%d_%d.png", userID, time.Now().UnixMilli())
-	destPath := filepath.Join(screenshotDir, filename)
-
-	dst, err := os.Create(destPath)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save file"})
-	}
-	defer dst.Close()
-
-	if _, err = io.Copy(dst, src); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to write file"})
-	}
-
-	imageURL := "/screenshots/" + filename
-	ss := models.Screenshot{
-		UserID:    userID,
-		Timestamp: time.Now(),
-		ImageURL:  imageURL,
-	}
-	database.DB.Create(&ss)
-
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status":    "uploaded",
-		"image_url": imageURL,
-	})
-}
-
 // ─── Admin Endpoints ─────────────────────────────────────────
-
-// GetScreenshots returns screenshots for admin viewing.
-func GetScreenshots(c echo.Context) error {
-	adminID := mw.GetUserID(c)
-	logAudit(adminID, "viewed_screenshots", 0, "viewed latest screenshots gallery")
-
-	var screenshots []models.Screenshot
-	database.DB.Preload("User").Order("timestamp desc").Limit(100).Find(&screenshots)
-	return c.JSON(http.StatusOK, screenshots)
-}
 
 // GetAgentMonitor returns aggregated agent monitoring data for each employee (today).
 func GetAgentMonitor(c echo.Context) error {
@@ -283,12 +218,6 @@ func GetAgentMonitor(c echo.Context) error {
 		entry.Keystrokes = sums.Keystrokes
 		entry.ScrollEvents = sums.ScrollEvents
 		entry.TotalHeartbeats = sums.Count
-
-		var ss models.Screenshot
-		if err := database.DB.Where("user_id = ? AND timestamp >= ? AND timestamp < ?", emp.ID, startOfDay, endOfDay).
-			Order("timestamp desc").First(&ss).Error; err == nil {
-			entry.LatestScreenshot = &ss.ImageURL
-		}
 
 		if sums.Count > 0 {
 			entries = append(entries, entry)

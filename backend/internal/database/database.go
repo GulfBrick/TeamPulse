@@ -51,7 +51,6 @@ func Migrate() {
 		&models.Standup{},
 		&models.AgentSetupToken{},
 		&models.AgentHeartbeat{},
-		&models.Screenshot{},
 		&models.ActivitySegment{},
 		&models.DailyAggregation{},
 		&models.AuditLog{},

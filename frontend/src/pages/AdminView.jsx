@@ -16,7 +16,6 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   const [activityStats, setActivityStats] = useState([]);
   const [dailyHours, setDailyHours] = useState([]);
   const [agentMonitor, setAgentMonitor] = useState([]);
-  const [agentScreenshots, setAgentScreenshots] = useState([]);
   const [appUsage, setAppUsage] = useState([]);
   const [aggregations, setAggregations] = useState([]);
   const [timelineDate, setTimelineDate] = useState(todayStr());
@@ -42,7 +41,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, e, t, k, s, te, as_, dh, am, asc, au, agg] = await Promise.all([
+      const [d, e, t, k, s, te, as_, dh, am, au, agg] = await Promise.all([
         api.getDashboard().catch(() => null),
         api.listEmployees().catch(() => []),
         api.listTasks().catch(() => []),
@@ -52,7 +51,6 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
         api.getActivityStats().catch(() => []),
         api.getDailyHours(7).catch(() => []),
         api.getAgentMonitor().catch(() => []),
-        api.getAgentScreenshots().catch(() => []),
         api.getAppUsage().catch(() => []),
         api.getAggregations(todayStr()).catch(() => []),
       ]);
@@ -65,7 +63,6 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
       setActivityStats(as_);
       setDailyHours(dh);
       setAgentMonitor(am);
-      setAgentScreenshots(asc);
       setAppUsage(au);
       setAggregations(agg);
     } catch (err) { console.error(err); }
@@ -80,13 +77,11 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
     if (wsConnected) return; // WebSocket handles live updates
     const interval = setInterval(async () => {
       try {
-        const [am, asc, au] = await Promise.all([
+        const [am, au] = await Promise.all([
           api.getAgentMonitor().catch(() => []),
-          api.getAgentScreenshots().catch(() => []),
           api.getAppUsage().catch(() => []),
         ]);
         setAgentMonitor(am);
-        setAgentScreenshots(asc);
         setAppUsage(au);
       } catch {}
     }, 5000);
@@ -100,11 +95,9 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
     if (tab === 'monitoring') {
       Promise.all([
         api.getAgentMonitor().catch(() => []),
-        api.getAgentScreenshots().catch(() => []),
         api.getAppUsage().catch(() => []),
-      ]).then(([am, asc, au]) => {
+      ]).then(([am, au]) => {
         setAgentMonitor(am);
-        setAgentScreenshots(asc);
         setAppUsage(au);
       });
     }
@@ -486,13 +479,6 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     <div style={{ fontSize: '12px', color: colors.textDim }}>{emp.email} · {emp.title || 'No title'}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    {/* Screenshots toggle */}
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: colors.textDim }}>
-                      <input type="checkbox" checked={emp.screenshots_enabled !== false} onChange={(e) => {
-                        api.updateEmployeeScreenshots(emp.id, e.target.checked).then(refresh);
-                      }} />
-                      Screenshots
-                    </label>
                     <Btn variant="secondary" onClick={() => { if (confirm('Deactivate this employee?')) { api.deleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px' }}>
                       Deactivate
                     </Btn>
@@ -814,7 +800,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
         <div>
           <PageHeader title="Desktop Monitoring" />
 
-          {(agentMonitor || []).length === 0 && (appUsage || []).length === 0 && (agentScreenshots || []).length === 0 ? (
+          {(agentMonitor || []).length === 0 && (appUsage || []).length === 0 ? (
             <EmptyState icon="📡" message="No desktop agent data yet. Employees need to install and run the TeamPulse Desktop Agent." />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -911,32 +897,6 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                 </Card>
               )}
 
-              {/* Screenshot Gallery */}
-              {(agentScreenshots || []).length > 0 && (
-                <Card>
-                  <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>Recent Screenshots</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
-                    {agentScreenshots.slice(0, 12).map((ss, i) => (
-                      <div key={i} style={{
-                        borderRadius: '10px', overflow: 'hidden',
-                        border: `1px solid ${colors.borderLight}`, background: colors.bg,
-                      }}>
-                        <img
-                          src={ss.image_url}
-                          alt={`Screenshot by ${ss.user?.name || 'Employee'}`}
-                          style={{ width: '100%', height: 'auto', display: 'block' }}
-                        />
-                        <div style={{ padding: '8px 10px' }}>
-                          <div style={{ fontSize: '12px', color: colors.text, fontWeight: 500 }}>{ss.user?.name || 'Unknown'}</div>
-                          <div style={{ fontSize: '11px', color: colors.textDimmer }}>
-                            {new Date(ss.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
             </div>
           )}
         </div>

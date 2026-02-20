@@ -6,7 +6,6 @@ import DayTimeline from '../components/DayTimeline';
 export default function EmployeeDetail({ employeeId, onBack }) {
   const [employee, setEmployee] = useState(null);
   const [timeline, setTimeline] = useState(null);
-  const [screenshots, setScreenshots] = useState([]);
   const [kpis, setKPIs] = useState([]);
   const [standups, setStandups] = useState([]);
   const [date, setDate] = useState(todayStr());
@@ -17,13 +16,11 @@ export default function EmployeeDetail({ employeeId, onBack }) {
     Promise.all([
       api.listEmployees().then(emps => emps.find(e => e.id === employeeId)),
       api.getEmployeeTimeline(employeeId, date).catch(() => null),
-      api.getAgentScreenshots().then(ss => ss.filter(s => s.user?.id === employeeId).slice(0, 6)).catch(() => []),
       api.listKPIs().then(kpis => kpis.filter(k => k.user_id === employeeId)).catch(() => []),
       api.listStandups(date).then(su => su.filter(s => s.user?.id === employeeId || s.user_id === employeeId)).catch(() => []),
-    ]).then(([emp, tl, ss, k, su]) => {
+    ]).then(([emp, tl, k, su]) => {
       setEmployee(emp || null);
       setTimeline(tl);
-      setScreenshots(ss);
       setKPIs(k);
       setStandups(su);
       setLoading(false);
@@ -152,25 +149,6 @@ export default function EmployeeDetail({ employeeId, onBack }) {
           )}
         </Card>
       </div>
-
-      {/* Screenshots gallery */}
-      {screenshots.length > 0 && (
-        <Card style={{ marginBottom: '24px' }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>Recent Screenshots</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
-            {screenshots.map((ss, i) => (
-              <div key={i} style={{
-                borderRadius: '8px', overflow: 'hidden', border: `1px solid ${colors.borderLight}`, background: colors.bg,
-              }}>
-                <img src={ss.image_url} alt="Screenshot" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                <div style={{ padding: '6px 8px', fontSize: '11px', color: colors.textDimmer }}>
-                  {new Date(ss.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       {/* Standup history */}
       {standups.length > 0 && (

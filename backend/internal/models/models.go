@@ -25,7 +25,6 @@ type User struct {
 	PIN       string         `gorm:"size:6" json:"-"`
 	IsActive           bool           `gorm:"default:true" json:"is_active"`
 	AgentSetupDone     bool           `gorm:"default:false" json:"agent_setup_done"`
-	ScreenshotsEnabled bool           `gorm:"default:true" json:"screenshots_enabled"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -159,14 +158,6 @@ type AgentHeartbeat struct {
 	IdleSeconds       int       `json:"idle_seconds"`
 }
 
-type Screenshot struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	UserID    uint      `gorm:"not null;index" json:"user_id"`
-	User      User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
-	Timestamp time.Time `gorm:"not null" json:"timestamp"`
-	ImageURL  string    `gorm:"not null" json:"image_url"`
-}
-
 // ─── DTOs ─────────────────────────────────────────────────────
 
 type LoginRequest struct {
@@ -249,7 +240,6 @@ type AgentMonitorEntry struct {
 	Keystrokes        int       `json:"keystrokes"`
 	ScrollEvents      int       `json:"scroll_events"`
 	TotalHeartbeats   int       `json:"total_heartbeats"`
-	LatestScreenshot  *string   `json:"latest_screenshot"`
 	LastSeen          time.Time `json:"last_seen"`
 	IsOnline          bool      `json:"is_online"`
 	IdleSeconds       int       `json:"idle_seconds"`

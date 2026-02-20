@@ -1,5 +1,4 @@
 const fetch = require('node-fetch');
-const FormData = require('form-data');
 
 class ApiClient {
   constructor(store) {
@@ -53,26 +52,6 @@ class ApiClient {
     return this.request('POST', '/agent/segments', segments);
   }
 
-  async uploadScreenshot(buffer) {
-    const form = new FormData();
-    form.append('screenshot', buffer, {
-      filename: `screenshot_${Date.now()}.png`,
-      contentType: 'image/png',
-    });
-
-    const headers = form.getHeaders();
-    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
-
-    const res = await fetch(`${this.baseUrl}/agent/screenshot`, {
-      method: 'POST',
-      headers,
-      body: form,
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Upload failed');
-    return data;
-  }
 }
 
 module.exports = { ApiClient };

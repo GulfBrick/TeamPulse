@@ -4,7 +4,6 @@ const Store = require('electron-store');
 const { ApiClient } = require('./api/client');
 const { InputTracker } = require('./tracking/inputTracker');
 const { WindowTracker } = require('./tracking/windowTracker');
-const { ScreenshotCapture } = require('./tracking/screenshotCapture');
 const { SegmentEngine } = require('./tracking/segmentEngine');
 const { LocalQueue } = require('./tracking/localQueue');
 const { initAutoUpdater, checkForUpdates, isUpdateDownloaded, quitAndInstall, stopUpdateChecks } = require('./updates/autoUpdater');
@@ -16,7 +15,6 @@ let mainWindow = null;
 let tray = null;
 let inputTracker = null;
 let windowTracker = null;
-let screenshotCapture = null;
 let segmentEngine = null;
 let localQueue = null;
 let heartbeatInterval = null;
@@ -150,7 +148,6 @@ function startTracking() {
 
   inputTracker = new InputTracker();
   windowTracker = new WindowTracker();
-  screenshotCapture = new ScreenshotCapture();
   segmentEngine = new SegmentEngine();
   if (!localQueue) localQueue = new LocalQueue();
 
@@ -214,15 +211,6 @@ function startTracking() {
   processSegments(); // immediate first segment flush
   segmentInterval = setInterval(processSegments, 5_000);
 
-  // Take screenshot every 2 minutes
-  screenshotCapture.startInterval(2 * 60_000, async (buffer) => {
-    try {
-      await apiClient.uploadScreenshot(buffer);
-    } catch (err) {
-      console.error('Screenshot upload failed:', err.message);
-    }
-  });
-
   showNotification('Tracking Started', 'TeamPulse is now monitoring your activity.');
 }
 
@@ -237,7 +225,6 @@ function stopTracking() {
 
   if (inputTracker) { inputTracker.stop(); inputTracker = null; }
   if (windowTracker) { windowTracker.stop(); windowTracker = null; }
-  if (screenshotCapture) { screenshotCapture.stop(); screenshotCapture = null; }
   if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
   if (segmentInterval) { clearInterval(segmentInterval); segmentInterval = null; }
   segmentEngine = null;

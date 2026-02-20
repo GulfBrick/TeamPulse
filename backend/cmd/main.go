@@ -113,7 +113,6 @@ func main() {
 	// Agent endpoints (desktop agent sends these)
 	api.POST("/agent/heartbeat", handlers.RecordAgentHeartbeat)
 	api.POST("/agent/segments", handlers.ReceiveSegments) // v2: segment-based tracking
-	api.POST("/agent/screenshot", handlers.UploadScreenshot)
 	api.POST("/agent/setup-token", handlers.GenerateSetupToken)
 	api.GET("/agent/status", handlers.GetAgentStatus)
 	api.POST("/agent/skip-setup", handlers.SkipAgentSetup)
@@ -131,7 +130,6 @@ func main() {
 	admin.DELETE("/employees/:id", handlers.DeactivateEmployee)
 	admin.GET("/dashboard", handlers.GetDashboard)
 	admin.GET("/activity/stats", handlers.GetActivityStats)
-	admin.GET("/agent/screenshots", handlers.GetScreenshots)
 	admin.GET("/agent/monitor", handlers.GetAgentMonitor)
 	admin.GET("/agent/app-usage", handlers.GetAppUsage)
 	admin.GET("/aggregations", handlers.GetAggregations)
@@ -139,9 +137,6 @@ func main() {
 
 	// WebSocket for live monitoring (admin)
 	e.GET("/api/ws/monitor", handlers.MonitorWebSocket, handlers.WsAuthMiddleware)
-
-	// Serve screenshots
-	e.Static("/screenshots", "screenshots")
 
 	// Serve static frontend in production
 	e.Static("/", "static")
