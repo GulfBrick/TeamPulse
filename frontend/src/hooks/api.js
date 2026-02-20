@@ -124,6 +124,15 @@ class ApiClient {
 
   // Hours chart (admin sees team totals, employee sees own)
   getDailyHours(days = 7) { return this.request('GET', `/hours/daily?days=${days}`); }
+
+  // Segments (v2 timeline data)
+  getSegments(userId, date) { return this.request('GET', `/segments?user_id=${userId}&date=${date}`); }
+  getMySegments(date) { return this.request('GET', `/segments/me${date ? `?date=${date}` : ''}`); }
+  getAggregations(date) { return this.request('GET', `/aggregations${date ? `?date=${date}` : ''}`); }
+  getEmployeeTimeline(id, date) { return this.request('GET', `/employee/${id}/timeline${date ? `?date=${date}` : ''}`); }
+
+  // Employee management
+  updateEmployeeScreenshots(id, enabled) { return this.request('PUT', `/employees/${id}`, { screenshots_enabled: enabled }); }
 }
 
 export const api = new ApiClient();

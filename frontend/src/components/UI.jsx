@@ -282,6 +282,164 @@ export function ActivityCheckModal({ countdown, onConfirm }) {
   );
 }
 
+// ─── Sidebar Navigation ──────────────────────────────────────
+
+const sidebarIcons = {
+  dashboard: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+    </svg>
+  ),
+  team: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  timeline: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="2" y1="12" x2="22" y2="12" /><line x1="6" y1="8" x2="6" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="18" y1="8" x2="18" y2="16" />
+    </svg>
+  ),
+  tasks: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  ),
+  kpis: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  ),
+  standups: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  monitoring: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" />
+    </svg>
+  ),
+  time: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  clock: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+};
+
+export function Sidebar({ items, active, onSelect, user, onLogout }) {
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  return (
+    <div style={{
+      width: collapsed ? '60px' : '220px',
+      minHeight: '100vh',
+      background: colors.card,
+      borderRight: `1px solid ${colors.border}`,
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'width 0.2s ease',
+      position: 'relative',
+      flexShrink: 0,
+    }}>
+      {/* Logo */}
+      <div style={{
+        padding: collapsed ? '16px 12px' : '20px 20px',
+        borderBottom: `1px solid ${colors.border}`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+      }}>
+        <Logo size={32} />
+        {!collapsed && (
+          <span style={{
+            fontSize: '14px', fontWeight: 700, letterSpacing: '-0.3px',
+            background: colors.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>TeamPulse</span>
+        )}
+      </div>
+
+      {/* Collapse toggle */}
+      <button onClick={() => setCollapsed(!collapsed)} style={{
+        position: 'absolute', top: '28px', right: '-12px', width: '24px', height: '24px',
+        borderRadius: '50%', background: colors.card, border: `1px solid ${colors.border}`,
+        color: colors.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '10px', zIndex: 10,
+      }}>
+        {collapsed ? '▸' : '◂'}
+      </button>
+
+      {/* Nav Items */}
+      <nav style={{ flex: 1, padding: '12px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {items.map(item => {
+          const isActive = active === item.key;
+          return (
+            <button key={item.key} onClick={() => onSelect(item.key)} style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: collapsed ? '10px 0' : '10px 12px',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              borderRadius: '8px', border: 'none', cursor: 'pointer',
+              background: isActive ? 'rgba(34,211,238,0.1)' : 'transparent',
+              color: isActive ? colors.cyan : colors.textDim,
+              fontSize: '13px', fontWeight: isActive ? 600 : 500,
+              transition: 'all 0.15s',
+              position: 'relative',
+              width: '100%',
+              textAlign: 'left',
+            }}>
+              {/* Accent bar */}
+              {isActive && (
+                <div style={{
+                  position: 'absolute', left: 0, top: '6px', bottom: '6px', width: '3px',
+                  borderRadius: '0 3px 3px 0',
+                  background: colors.gradient,
+                }} />
+              )}
+              <span style={{ display: 'flex', flexShrink: 0 }}>{sidebarIcons[item.key] || sidebarIcons.dashboard}</span>
+              {!collapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* User profile + logout */}
+      <div style={{
+        padding: collapsed ? '12px 8px' : '16px 16px',
+        borderTop: `1px solid ${colors.border}`,
+        display: 'flex',
+        alignItems: collapsed ? 'center' : 'flex-start',
+        flexDirection: collapsed ? 'column' : 'row',
+        gap: '8px',
+        justifyContent: collapsed ? 'center' : 'space-between',
+      }}>
+        {!collapsed && (
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.name || 'User'}
+            </div>
+            <div style={{ fontSize: '10px', color: colors.textDimmer, textTransform: 'uppercase' }}>
+              {user?.role || 'employee'}
+            </div>
+          </div>
+        )}
+        <button onClick={onLogout} title="Sign Out" style={{
+          background: 'none', border: `1px solid ${colors.borderLight}`, borderRadius: '6px',
+          padding: '4px 8px', cursor: 'pointer', color: colors.textDim, fontSize: '11px',
+          flexShrink: 0,
+        }}>
+          {collapsed ? '⏻' : 'Sign Out'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function TabBar({ tabs, active, onSelect }) {
   return (
     <div style={{ display: 'flex', gap: '4px' }}>

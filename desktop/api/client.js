@@ -49,6 +49,10 @@ class ApiClient {
     return this.request('POST', '/agent/heartbeat', data);
   }
 
+  async sendSegments(segments) {
+    return this.request('POST', '/agent/segments', segments);
+  }
+
   async uploadScreenshot(buffer) {
     const form = new FormData();
     form.append('screenshot', buffer, {

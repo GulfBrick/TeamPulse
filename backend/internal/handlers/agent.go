@@ -161,12 +161,29 @@ func RecordAgentHeartbeat(c echo.Context) error {
 	}
 	database.DB.Create(&hb)
 
+	// Broadcast to WebSocket clients
+	var user models.User
+	database.DB.First(&user, userID)
+	BroadcastMonitorUpdate("heartbeat", map[string]interface{}{
+		"user_id":   userID,
+		"user_name": user.Name,
+		"heartbeat": hb,
+	})
+
 	return c.JSON(http.StatusOK, map[string]string{"status": "recorded"})
 }
 
 // UploadScreenshot receives a screenshot from the desktop agent.
 func UploadScreenshot(c echo.Context) error {
 	userID := mw.GetUserID(c)
+
+	// Check if screenshots are enabled for this user
+	var user models.User
+	if err := database.DB.First(&user, userID).Error; err == nil {
+		if !user.ScreenshotsEnabled {
+			return c.JSON(http.StatusOK, map[string]string{"status": "screenshots_disabled"})
+		}
+	}
 
 	file, err := c.FormFile("screenshot")
 	if err != nil {
@@ -213,6 +230,9 @@ func UploadScreenshot(c echo.Context) error {
 
 // GetScreenshots returns screenshots for admin viewing.
 func GetScreenshots(c echo.Context) error {
+	adminID := mw.GetUserID(c)
+	logAudit(adminID, "viewed_screenshots", 0, "viewed latest screenshots gallery")
+
 	var screenshots []models.Screenshot
 	database.DB.Preload("User").Order("timestamp desc").Limit(100).Find(&screenshots)
 	return c.JSON(http.StatusOK, screenshots)

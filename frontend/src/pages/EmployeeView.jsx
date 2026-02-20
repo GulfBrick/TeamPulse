@@ -4,8 +4,9 @@ import { api } from '../hooks/api';
 import { useActivityTracker } from '../hooks/useActivityTracker';
 import { useActivityCheck } from '../hooks/useActivityCheck';
 import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, ActivityCheckModal, formatTime, formatDate, todayStr, colors } from '../components/UI';
+import DayTimeline from '../components/DayTimeline';
 
-export default function EmployeeView() {
+export default function EmployeeView({ section }) {
   const [clockStatus, setClockStatus] = useState({ clocked_in: false });
   const [tasks, setTasks] = useState([]);
   const [activeTimer, setActiveTimer] = useState(null);
@@ -15,7 +16,9 @@ export default function EmployeeView() {
   const [elapsed, setElapsed] = useState(0);
   const [taskElapsed, setTaskElapsed] = useState(0);
   const [dailyHours, setDailyHours] = useState([]);
-  const [tab, setTab] = useState('clock');
+  const [mySegments, setMySegments] = useState([]);
+  const [segmentDate, setSegmentDate] = useState(todayStr());
+  const tab = section || 'clock';
 
   // Agent onboarding
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -50,6 +53,12 @@ export default function EmployeeView() {
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+
+  // Load segments for My Timeline
+  useEffect(() => {
+    if (tab !== 'timeline') return;
+    api.getMySegments(segmentDate).then(setMySegments).catch(() => setMySegments([]));
+  }, [tab, segmentDate]);
 
   // Check agent setup status on mount — show onboarding if not done
   useEffect(() => {
@@ -160,17 +169,6 @@ export default function EmployeeView() {
 
   return (
     <div>
-      {/* Tab selector */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '24px' }}>
-        {[['clock', '⏱ Time Clock'], ['tasks', '☑ My Tasks'], ['kpis', '◉ My KPIs']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{
-            padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-            background: tab === key ? colors.gradient : 'transparent', color: tab === key ? '#fff' : colors.textDim,
-            border: tab === key ? 'none' : `1px solid ${colors.borderLight}`,
-          }}>{label}</button>
-        ))}
-      </div>
-
       {/* ─── Time Clock ──────────────────────────────────── */}
       {tab === 'clock' && (
         <div>
@@ -298,6 +296,53 @@ export default function EmployeeView() {
               </div>
             )}
           </Card>
+        </div>
+      )}
+
+      {/* ─── My Timeline ────────────────────────────────── */}
+      {tab === 'timeline' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: colors.text }}>My Timeline</h2>
+            <input type="date" value={segmentDate} onChange={e => setSegmentDate(e.target.value)} style={{
+              padding: '8px 12px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
+              borderRadius: '6px', color: colors.textMuted, fontSize: '13px', outline: 'none',
+            }} />
+          </div>
+
+          <Card style={{ marginBottom: '20px' }}>
+            <DayTimeline segments={mySegments} />
+          </Card>
+
+          {/* App usage breakdown */}
+          {mySegments.length > 0 && (
+            <Card>
+              <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>App Usage</h3>
+              {(() => {
+                const appMap = {};
+                mySegments.filter(s => s.segment_type === 'active' && s.app_name).forEach(s => {
+                  appMap[s.app_name] = (appMap[s.app_name] || 0) + (s.duration_seconds || 0);
+                });
+                const apps = Object.entries(appMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+                const maxDur = apps[0]?.[1] || 1;
+                return apps.map(([name, dur]) => (
+                  <div key={name} style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '13px', color: colors.text }}>{name}</span>
+                      <span style={{ fontSize: '12px', color: colors.textDim }}>{formatTime(dur)}</span>
+                    </div>
+                    <div style={{ background: colors.bg, borderRadius: '3px', height: '5px', overflow: 'hidden' }}>
+                      <div style={{ width: `${(dur / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)' }} />
+                    </div>
+                  </div>
+                ));
+              })()}
+            </Card>
+          )}
+
+          {mySegments.length === 0 && (
+            <EmptyState icon="📊" message="No timeline data for this date." sub="Activity segments will appear here once the desktop agent is running." />
+          )}
         </div>
       )}
 

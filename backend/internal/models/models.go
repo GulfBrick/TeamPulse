@@ -23,8 +23,9 @@ type User struct {
 	Role      Role           `gorm:"not null;default:employee" json:"role"`
 	Title     string         `json:"title"`
 	PIN       string         `gorm:"size:6" json:"-"`
-	IsActive       bool           `gorm:"default:true" json:"is_active"`
-	AgentSetupDone bool           `gorm:"default:false" json:"agent_setup_done"`
+	IsActive           bool           `gorm:"default:true" json:"is_active"`
+	AgentSetupDone     bool           `gorm:"default:false" json:"agent_setup_done"`
+	ScreenshotsEnabled bool           `gorm:"default:true" json:"screenshots_enabled"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -257,4 +258,70 @@ type AgentMonitorEntry struct {
 type AppUsageEntry struct {
 	App     string  `json:"app"`
 	Minutes float64 `json:"minutes"`
+}
+
+// ─── Activity Segments (v2) ──────────────────────────────────
+
+// ActivitySegment replaces raw heartbeat pings with proper time blocks
+type ActivitySegment struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	UserID       uint      `gorm:"not null;index" json:"user_id"`
+	User         User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	StartTime    time.Time `gorm:"not null" json:"start_time"`
+	EndTime      time.Time `gorm:"not null" json:"end_time"`
+	Duration     int       `json:"duration_seconds"`
+	SegmentType  string    `gorm:"not null" json:"segment_type"` // "active", "idle", "app_usage"
+	AppName      string    `json:"app_name"`
+	WindowTitle  string    `json:"window_title"`
+	MouseMoves   int       `json:"mouse_moves"`
+	MouseClicks  int       `json:"mouse_clicks"`
+	Keystrokes   int       `json:"keystrokes"`
+	ScrollEvents int       `json:"scroll_events"`
+	Date         string    `gorm:"not null;index;size:10" json:"date"` // YYYY-MM-DD
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// DailyAggregation pre-computed daily summary per user
+type DailyAggregation struct {
+	ID                 uint      `gorm:"primaryKey" json:"id"`
+	UserID             uint      `gorm:"not null;uniqueIndex:idx_user_date" json:"user_id"`
+	User               User      `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Date               string    `gorm:"not null;uniqueIndex:idx_user_date;size:10" json:"date"`
+	TotalActiveSeconds int       `json:"total_active_seconds"`
+	TotalIdleSeconds   int       `json:"total_idle_seconds"`
+	TotalMouseMoves    int       `json:"total_mouse_moves"`
+	TotalMouseClicks   int       `json:"total_mouse_clicks"`
+	TotalKeystrokes    int       `json:"total_keystrokes"`
+	TotalScrollEvents  int       `json:"total_scroll_events"`
+	TopApps            string    `gorm:"type:text" json:"top_apps"` // JSON array
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+// AuditLog tracks admin actions for privacy compliance
+type AuditLog struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	AdminID   uint      `gorm:"not null" json:"admin_id"`
+	Action    string    `gorm:"not null" json:"action"`
+	TargetID  uint      `json:"target_id"`
+	Details   string    `json:"details"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// ─── Segment DTOs ────────────────────────────────────────────
+
+type SegmentRequest struct {
+	StartTime    string `json:"start_time"`
+	EndTime      string `json:"end_time"`
+	SegmentType  string `json:"segment_type"`
+	AppName      string `json:"app_name"`
+	WindowTitle  string `json:"window_title"`
+	MouseMoves   int    `json:"mouse_moves"`
+	MouseClicks  int    `json:"mouse_clicks"`
+	Keystrokes   int    `json:"keystrokes"`
+	ScrollEvents int    `json:"scroll_events"`
+}
+
+type TimelineResponse struct {
+	Segments    []ActivitySegment `json:"segments"`
+	Aggregation *DailyAggregation `json:"aggregation"`
 }

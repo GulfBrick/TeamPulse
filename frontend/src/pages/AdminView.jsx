@@ -2,9 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../hooks/api';
 import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, PageHeader, TabBar, formatTime, formatDate, formatDateTime, todayStr, colors } from '../components/UI';
+import { useWebSocket } from '../hooks/useWebSocket';
+import DayTimeline from '../components/DayTimeline';
 
-export default function AdminView() {
-  const [tab, setTab] = useState('dashboard');
+export default function AdminView({ section = 'dashboard', onViewEmployee }) {
+  const tab = section;
   const [dashboard, setDashboard] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -16,7 +18,14 @@ export default function AdminView() {
   const [agentMonitor, setAgentMonitor] = useState([]);
   const [agentScreenshots, setAgentScreenshots] = useState([]);
   const [appUsage, setAppUsage] = useState([]);
+  const [aggregations, setAggregations] = useState([]);
+  const [timelineDate, setTimelineDate] = useState(todayStr());
+  const [expandedEmployee, setExpandedEmployee] = useState(null);
+  const [employeeTimeline, setEmployeeTimeline] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // WebSocket for live monitoring
+  const { lastMessage: wsMessage, connected: wsConnected } = useWebSocket(tab === 'monitoring');
 
   // Modals
   const [showAddEmployee, setShowAddEmployee] = useState(false);
@@ -33,7 +42,7 @@ export default function AdminView() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, e, t, k, s, te, as_, dh, am, asc, au] = await Promise.all([
+      const [d, e, t, k, s, te, as_, dh, am, asc, au, agg] = await Promise.all([
         api.getDashboard().catch(() => null),
         api.listEmployees().catch(() => []),
         api.listTasks().catch(() => []),
@@ -45,6 +54,7 @@ export default function AdminView() {
         api.getAgentMonitor().catch(() => []),
         api.getAgentScreenshots().catch(() => []),
         api.getAppUsage().catch(() => []),
+        api.getAggregations(todayStr()).catch(() => []),
       ]);
       setDashboard(d);
       setEmployees(e);
@@ -57,15 +67,17 @@ export default function AdminView() {
       setAgentMonitor(am);
       setAgentScreenshots(asc);
       setAppUsage(au);
+      setAggregations(agg);
     } catch (err) { console.error(err); }
     setLoading(false);
   }, [standupDate]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Auto-refresh monitoring tab every 5 seconds for real-time tracking
+  // Auto-refresh monitoring tab — use WebSocket if connected, fallback to 5s polling
   useEffect(() => {
     if (tab !== 'monitoring') return;
+    if (wsConnected) return; // WebSocket handles live updates
     const interval = setInterval(async () => {
       try {
         const [am, asc, au] = await Promise.all([
@@ -79,7 +91,38 @@ export default function AdminView() {
       } catch {}
     }, 5000);
     return () => clearInterval(interval);
-  }, [tab]);
+  }, [tab, wsConnected]);
+
+  // Handle WebSocket messages for live monitoring
+  useEffect(() => {
+    if (!wsMessage) return;
+    // Refresh monitoring data when we get a WebSocket update
+    if (tab === 'monitoring') {
+      Promise.all([
+        api.getAgentMonitor().catch(() => []),
+        api.getAgentScreenshots().catch(() => []),
+        api.getAppUsage().catch(() => []),
+      ]).then(([am, asc, au]) => {
+        setAgentMonitor(am);
+        setAgentScreenshots(asc);
+        setAppUsage(au);
+      });
+    }
+  }, [wsMessage, tab]);
+
+  // Load timeline data when timeline tab or date changes
+  useEffect(() => {
+    if (tab !== 'timeline') return;
+    api.getAggregations(timelineDate).then(setAggregations).catch(() => setAggregations([]));
+  }, [tab, timelineDate]);
+
+  // Load expanded employee timeline
+  useEffect(() => {
+    if (!expandedEmployee) { setEmployeeTimeline(null); return; }
+    api.getEmployeeTimeline(expandedEmployee, timelineDate)
+      .then(setEmployeeTimeline)
+      .catch(() => setEmployeeTimeline(null));
+  }, [expandedEmployee, timelineDate]);
 
   // ─── Handlers ───────────────────────────────────────────────
 
@@ -123,8 +166,6 @@ export default function AdminView() {
     refresh();
   };
 
-  const tabs = ['dashboard', 'team', 'time', 'tasks', 'kpis', 'standups', 'monitoring'];
-  const tabIcons = { dashboard: '◈', team: '👥', time: '⏱', tasks: '☑', kpis: '◉', standups: '◇', monitoring: '📡' };
   const filteredTasks = taskFilter === 'all' ? tasks : tasks.filter(t => t.status === taskFilter);
   const priorityColor = { high: '#f87171', medium: '#fbbf24', low: '#34d399' };
 
@@ -134,19 +175,6 @@ export default function AdminView() {
 
   return (
     <div>
-      {/* Tab Navigation */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        {tabs.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-            background: tab === t ? colors.gradient : 'transparent', color: tab === t ? '#fff' : colors.textDim,
-            border: tab === t ? 'none' : `1px solid ${colors.borderLight}`, display: 'flex', alignItems: 'center', gap: '6px',
-          }}>
-            {tabIcons[t]} {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
-
       {/* ═══ DASHBOARD ══════════════════════════════════════ */}
       {tab === 'dashboard' && dashboard && (
         <div>
@@ -277,7 +305,7 @@ export default function AdminView() {
                 <div style={{ textAlign: 'center', padding: '32px 16px' }}>
                   <div style={{ fontSize: '32px', marginBottom: '8px' }}>🚀</div>
                   <p style={{ color: colors.textDim, fontSize: '13px', margin: '0 0 12px' }}>Your team starts here</p>
-                  <Btn onClick={() => { setTab('team'); setShowAddEmployee(true); }} style={{ padding: '8px 20px', fontSize: '12px' }}>
+                  <Btn onClick={() => setShowAddEmployee(true)} style={{ padding: '8px 20px', fontSize: '12px' }}>
                     + Add First Employee
                   </Btn>
                 </div>
@@ -343,6 +371,100 @@ export default function AdminView() {
               )}
             </Card>
           </div>
+
+          {/* ── Stacked Bar Chart: Active vs Idle Hours per Day ── */}
+          {(aggregations || []).length > 0 && (
+            <Card style={{ marginTop: '24px' }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>Active vs Idle (Segments)</h3>
+              <p style={{ margin: '0 0 16px', fontSize: '12px', color: colors.textDim }}>Today's breakdown from segment data</p>
+              <div style={{ width: '100%', height: 200 }}>
+                <ResponsiveContainer>
+                  <BarChart data={aggregations.map(a => ({
+                    name: a.user?.name || `User ${a.user_id}`,
+                    active: Math.round((a.total_active_seconds / 3600) * 10) / 10,
+                    idle: Math.round((a.total_idle_seconds / 3600) * 10) / 10,
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={colors.border} vertical={false} />
+                    <XAxis dataKey="name" tick={{ fill: colors.textDim, fontSize: 11 }} axisLine={{ stroke: colors.border }} tickLine={false} />
+                    <YAxis tick={{ fill: colors.textDim, fontSize: 12 }} axisLine={false} tickLine={false} unit="h" />
+                    <Tooltip
+                      contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '10px', color: colors.text, fontSize: '13px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
+                      labelStyle={{ color: colors.textMuted, fontWeight: 600 }}
+                      formatter={(value, name) => [`${value}h`, name === 'active' ? 'Active' : 'Idle']}
+                    />
+                    <Bar dataKey="active" stackId="a" fill="#34d399" radius={[0, 0, 0, 0]} maxBarSize={40} />
+                    <Bar dataKey="idle" stackId="a" fill="#fbbf24" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
+
+          {/* ── Activity Heatmap ── */}
+          {(aggregations || []).length > 0 && employees.length > 0 && (
+            <Card style={{ marginTop: '24px' }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>Activity Heatmap</h3>
+              <p style={{ margin: '0 0 16px', fontSize: '12px', color: colors.textDim }}>Activity intensity per employee today</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {employees.map(emp => {
+                  const agg = aggregations.find(a => a.user_id === emp.id);
+                  const totalSec = agg ? agg.total_active_seconds + agg.total_idle_seconds : 0;
+                  const activePct = totalSec > 0 ? (agg.total_active_seconds / totalSec) : 0;
+                  // Intensity: 0 = no data, through green gradient
+                  const intensity = agg ? Math.min(activePct * 1.2, 1) : 0;
+                  const bgColor = intensity > 0
+                    ? `rgba(52, 211, 153, ${0.1 + intensity * 0.6})`
+                    : colors.bg;
+
+                  return (
+                    <div key={emp.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px',
+                      borderRadius: '6px', cursor: 'pointer',
+                    }} onClick={() => onViewEmployee?.(emp.id)}>
+                      <span style={{ fontSize: '12px', color: colors.textMuted, width: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {emp.name}
+                      </span>
+                      <div style={{ flex: 1, height: '24px', borderRadius: '4px', background: bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {agg && (
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: intensity > 0.4 ? '#fff' : colors.textDim }}>
+                            {formatTime(agg.total_active_seconds)} active
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', color: colors.textDimmer, width: '40px', textAlign: 'right' }}>
+                        {agg ? `${Math.round(activePct * 100)}%` : '—'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
+          {/* ── Top Apps (Team) ── */}
+          {(appUsage || []).length > 0 && (
+            <Card style={{ marginTop: '24px' }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>Top Apps (Team)</h3>
+              {appUsage.slice(0, 10).map((a, i) => {
+                const maxMin = appUsage[0]?.minutes || 1;
+                const pct = (a.minutes / maxMin) * 100;
+                return (
+                  <div key={i} style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                      <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{a.app}</span>
+                      <span style={{ fontSize: '12px', color: colors.textDim }}>{Math.round(a.minutes)} min</span>
+                    </div>
+                    <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${pct}%`, height: '100%', borderRadius: '4px',
+                        background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)', transition: 'width 0.3s',
+                      }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </Card>
+          )}
         </div>
       )}
 
@@ -358,12 +480,19 @@ export default function AdminView() {
                 <Card key={emp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '15px', fontWeight: 600, color: colors.text }}>{emp.name}</span>
+                      <span style={{ fontSize: '15px', fontWeight: 600, color: colors.text, cursor: 'pointer' }} onClick={() => onViewEmployee?.(emp.id)}>{emp.name}</span>
                       <Badge status={emp.role === 'admin' ? 'exceeded' : 'pending'} />
                     </div>
                     <div style={{ fontSize: '12px', color: colors.textDim }}>{emp.email} · {emp.title || 'No title'}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {/* Screenshots toggle */}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: colors.textDim }}>
+                      <input type="checkbox" checked={emp.screenshots_enabled !== false} onChange={(e) => {
+                        api.updateEmployeeScreenshots(emp.id, e.target.checked).then(refresh);
+                      }} />
+                      Screenshots
+                    </label>
                     <Btn variant="secondary" onClick={() => { if (confirm('Deactivate this employee?')) { api.deleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px' }}>
                       Deactivate
                     </Btn>
@@ -551,6 +680,130 @@ export default function AdminView() {
                   </div>
                 </Card>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ TIMELINE ═════════════════════════════════════ */}
+      {tab === 'timeline' && (
+        <div>
+          <PageHeader title="Activity Timeline" right={
+            <input type="date" value={timelineDate} onChange={e => { setTimelineDate(e.target.value); setExpandedEmployee(null); }} style={{
+              padding: '8px 12px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
+              borderRadius: '6px', color: colors.textMuted, fontSize: '13px', outline: 'none',
+            }} />
+          } />
+
+          {(aggregations || []).length === 0 && employees.length === 0 ? (
+            <EmptyState icon="📊" message="No activity data for this date." sub="Timeline data appears once the desktop agent starts sending segments." />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {(employees || []).map(emp => {
+                const agg = (aggregations || []).find(a => a.user_id === emp.id);
+                const isExpanded = expandedEmployee === emp.id;
+
+                return (
+                  <Card key={emp.id} style={{ padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                      <div style={{
+                        width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: agg ? 'rgba(52,211,153,0.15)' : colors.bgRaised, fontSize: '12px', fontWeight: 700,
+                        color: agg ? '#34d399' : colors.textDim, cursor: 'pointer',
+                      }} onClick={() => onViewEmployee?.(emp.id)}>
+                        {emp.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{
+                          fontSize: '14px', fontWeight: 600, color: colors.text, cursor: 'pointer',
+                        }} onClick={() => onViewEmployee?.(emp.id)}>
+                          {emp.name}
+                        </span>
+                        {agg && (
+                          <div style={{ fontSize: '11px', color: colors.textDim }}>
+                            {formatTime(agg.total_active_seconds)} active · {formatTime(agg.total_idle_seconds)} idle
+                          </div>
+                        )}
+                      </div>
+                      <button onClick={() => setExpandedEmployee(isExpanded ? null : emp.id)} style={{
+                        background: 'none', border: `1px solid ${colors.borderLight}`, borderRadius: '6px',
+                        padding: '4px 10px', cursor: 'pointer', color: colors.textDim, fontSize: '11px',
+                      }}>
+                        {isExpanded ? 'Collapse' : 'Expand'}
+                      </button>
+                    </div>
+
+                    {/* Day timeline bar */}
+                    {isExpanded && employeeTimeline ? (
+                      <div>
+                        <DayTimeline segments={employeeTimeline.segments || []} />
+                        {/* Segment detail table */}
+                        {(employeeTimeline.segments || []).length > 0 && (
+                          <div style={{ marginTop: '16px', maxHeight: '300px', overflow: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                              <thead>
+                                <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                  {['Time', 'Type', 'App', 'Duration', 'Clicks', 'Keys'].map(h => (
+                                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: colors.textDim, fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(employeeTimeline.segments || []).map((seg, i) => (
+                                  <tr key={i} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>
+                                      {new Date(seg.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                      {' — '}
+                                      {new Date(seg.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                    <td style={{ padding: '6px 10px' }}>
+                                      <Badge status={seg.segment_type} />
+                                    </td>
+                                    <td style={{ padding: '6px 10px', color: colors.text }}>{seg.app_name || '—'}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.cyan, fontWeight: 500 }}>{formatTime(seg.duration_seconds)}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_clicks}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.keystrokes}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {/* App breakdown */}
+                        {employeeTimeline.aggregation?.top_apps && (
+                          <div style={{ marginTop: '16px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: colors.textDim, marginBottom: '8px' }}>Top Apps</div>
+                            {(() => {
+                              try {
+                                const apps = JSON.parse(employeeTimeline.aggregation.top_apps);
+                                const maxDur = apps[0]?.Duration || 1;
+                                return apps.map((app, i) => (
+                                  <div key={i} style={{ marginBottom: '6px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                      <span style={{ fontSize: '12px', color: colors.text }}>{app.AppName}</span>
+                                      <span style={{ fontSize: '11px', color: colors.textDim }}>{formatTime(app.Duration)}</span>
+                                    </div>
+                                    <div style={{ background: colors.bg, borderRadius: '3px', height: '4px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${(app.Duration / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)' }} />
+                                    </div>
+                                  </div>
+                                ));
+                              } catch { return null; }
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    ) : isExpanded ? (
+                      <div style={{ textAlign: 'center', padding: '20px', color: colors.textDim, fontSize: '13px' }}>Loading timeline...</div>
+                    ) : (
+                      agg ? <DayTimeline segments={[]} compact /> : (
+                        <div style={{ fontSize: '12px', color: colors.textDimmer }}>No segments recorded</div>
+                      )
+                    )}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

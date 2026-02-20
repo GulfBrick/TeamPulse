@@ -5,6 +5,8 @@ const { ApiClient } = require('./api/client');
 const { InputTracker } = require('./tracking/inputTracker');
 const { WindowTracker } = require('./tracking/windowTracker');
 const { ScreenshotCapture } = require('./tracking/screenshotCapture');
+const { SegmentEngine } = require('./tracking/segmentEngine');
+const { LocalQueue } = require('./tracking/localQueue');
 
 const store = new Store();
 const apiClient = new ApiClient(store);
@@ -14,7 +16,10 @@ let tray = null;
 let inputTracker = null;
 let windowTracker = null;
 let screenshotCapture = null;
+let segmentEngine = null;
+let localQueue = null;
 let heartbeatInterval = null;
+let segmentInterval = null;
 let clockCheckInterval = null;
 let isClockedIn = false;
 
@@ -137,16 +142,27 @@ function startTracking() {
   inputTracker = new InputTracker();
   windowTracker = new WindowTracker();
   screenshotCapture = new ScreenshotCapture();
+  segmentEngine = new SegmentEngine();
+  if (!localQueue) localQueue = new LocalQueue();
 
   inputTracker.start();
   windowTracker.start();
 
-  // Send first heartbeat immediately
+  // Start segment engine with initial window
+  const initialWindow = windowTracker.getCurrent();
+  segmentEngine.start(initialWindow.app, initialWindow.title);
+
+  // Legacy heartbeat + segment feed every 5 seconds
   const sendHeartbeat = async () => {
     try {
       const inputData = inputTracker.flush();
       const windowData = windowTracker.getCurrent();
 
+      // Feed input events to segment engine
+      segmentEngine.recordInput(inputData);
+      segmentEngine.recordAppChange(windowData.app, windowData.title);
+
+      // Legacy heartbeat (keep for monitoring tab backward compat)
       await apiClient.sendHeartbeat({
         mouse_moves: inputData.mouseMoves,
         mouse_clicks: inputData.mouseClicks,
@@ -161,9 +177,32 @@ function startTracking() {
     }
   };
 
+  // Segment flush + send cycle every 5 seconds
+  const processSegments = async () => {
+    try {
+      // Flush completed segments from engine into local queue
+      const completed = segmentEngine.flush();
+      if (completed.length > 0) {
+        localQueue.enqueue(completed);
+      }
+
+      // Dequeue and send batch
+      const batch = localQueue.dequeue(50);
+      if (batch.length > 0) {
+        const segments = batch.map(b => b.segment);
+        const ids = batch.map(b => b.id);
+        await apiClient.sendSegments(segments);
+        localQueue.markSent(ids);
+      }
+    } catch (err) {
+      // Network failure — segments stay in local queue, retried next tick
+      console.error('Segment send failed (queued for retry):', err.message);
+    }
+  };
+
   sendHeartbeat(); // immediate first heartbeat
-  // Send heartbeat every 5 seconds for real-time tracking
   heartbeatInterval = setInterval(sendHeartbeat, 5_000);
+  segmentInterval = setInterval(processSegments, 5_000);
 
   // Take screenshot every 2 minutes
   screenshotCapture.startInterval(2 * 60_000, async (buffer) => {
@@ -178,10 +217,20 @@ function startTracking() {
 }
 
 function stopTracking() {
+  // Flush remaining segments before stopping
+  if (segmentEngine && localQueue) {
+    const remaining = segmentEngine.stop();
+    if (remaining.length > 0) {
+      localQueue.enqueue(remaining);
+    }
+  }
+
   if (inputTracker) { inputTracker.stop(); inputTracker = null; }
   if (windowTracker) { windowTracker.stop(); windowTracker = null; }
   if (screenshotCapture) { screenshotCapture.stop(); screenshotCapture = null; }
   if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+  if (segmentInterval) { clearInterval(segmentInterval); segmentInterval = null; }
+  segmentEngine = null;
 }
 
 // ─── Clock Status Check ─────────────────────────────────────
@@ -301,4 +350,5 @@ app.on('window-all-closed', (e) => {
 
 app.on('before-quit', () => {
   stopTracking();
+  if (localQueue) { localQueue.close(); localQueue = null; }
 });

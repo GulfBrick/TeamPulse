@@ -172,6 +172,8 @@ func DeactivateEmployee(c echo.Context) error {
 		database.DB.Where("user_id = ?", id).Delete(&models.AgentSetupToken{})
 		database.DB.Where("user_id = ?", id).Delete(&models.AgentHeartbeat{})
 		database.DB.Where("user_id = ?", id).Delete(&models.Screenshot{})
+		database.DB.Where("user_id = ?", id).Delete(&models.ActivitySegment{})
+		database.DB.Where("user_id = ?", id).Delete(&models.DailyAggregation{})
 		database.DB.Unscoped().Where("id = ?", id).Delete(&models.User{})
 		return c.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 	}
