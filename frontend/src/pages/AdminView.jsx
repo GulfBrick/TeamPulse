@@ -12,7 +12,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   const [tasks, setTasks] = useState([]);
   const [kpis, setKPIs] = useState([]);
   const [standups, setStandups] = useState([]);
-  const [timeEntries, setTimeEntries] = useState([]);
+  const [clockSessions, setClockSessions] = useState([]);
   const [activityStats, setActivityStats] = useState([]);
   const [dailyHours, setDailyHours] = useState([]);
   const [agentMonitor, setAgentMonitor] = useState([]);
@@ -22,6 +22,10 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   const [expandedEmployee, setExpandedEmployee] = useState(null);
   const [employeeTimeline, setEmployeeTimeline] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Sessions
+  const [sessionDate, setSessionDate] = useState(todayStr());
+  const [expandedSession, setExpandedSession] = useState(null);
 
   // WebSocket for live monitoring
   const { lastMessage: wsMessage, connected: wsConnected } = useWebSocket(tab === 'monitoring');
@@ -41,13 +45,12 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, e, t, k, s, te, as_, dh, am, au, agg] = await Promise.all([
+      const [d, e, t, k, s, as_, dh, am, au, agg] = await Promise.all([
         api.getDashboard().catch(() => null),
         api.listEmployees().catch(() => []),
         api.listTasks().catch(() => []),
         api.listKPIs().catch(() => []),
         api.listStandups(standupDate).catch(() => []),
-        api.getTimeEntries().catch(() => []),
         api.getActivityStats().catch(() => []),
         api.getDailyHours(7).catch(() => []),
         api.getAgentMonitor().catch(() => []),
@@ -59,7 +62,6 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
       setTasks(t);
       setKPIs(k);
       setStandups(s);
-      setTimeEntries(te);
       setActivityStats(as_);
       setDailyHours(dh);
       setAgentMonitor(am);
@@ -71,10 +73,16 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  // Load sessions when tab or date changes
+  useEffect(() => {
+    if (tab !== 'sessions') return;
+    api.getClockSessions(sessionDate).then(setClockSessions).catch(() => setClockSessions([]));
+  }, [tab, sessionDate]);
+
   // Auto-refresh monitoring tab — use WebSocket if connected, fallback to 5s polling
   useEffect(() => {
     if (tab !== 'monitoring') return;
-    if (wsConnected) return; // WebSocket handles live updates
+    if (wsConnected) return;
     const interval = setInterval(async () => {
       try {
         const [am, au] = await Promise.all([
@@ -91,7 +99,6 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   // Handle WebSocket messages for live monitoring
   useEffect(() => {
     if (!wsMessage) return;
-    // Refresh monitoring data when we get a WebSocket update
     if (tab === 'monitoring') {
       Promise.all([
         api.getAgentMonitor().catch(() => []),
@@ -160,7 +167,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   };
 
   const filteredTasks = taskFilter === 'all' ? tasks : tasks.filter(t => t.status === taskFilter);
-  const priorityColor = { high: '#f87171', medium: '#fbbf24', low: '#34d399' };
+  const priorityColor = { high: colors.red, medium: colors.yellow, low: colors.green };
 
   if (loading && !dashboard) {
     return <div style={{ padding: '60px', textAlign: 'center', color: colors.textDim }}>Loading dashboard...</div>;
@@ -173,17 +180,11 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
         <div>
           {/* Welcome Banner */}
           <div className="fade-in" style={{
-            position: 'relative', overflow: 'hidden', borderRadius: '16px', padding: '32px 36px', marginBottom: '28px',
-            background: `linear-gradient(135deg, ${colors.card}, #0c0c20)`,
-            border: `1px solid ${colors.borderLight}`,
+            position: 'relative', overflow: 'hidden', borderRadius: '10px', padding: '32px 36px', marginBottom: '28px',
+            background: colors.card,
+            border: `1px solid ${colors.border}`,
           }}>
-            {/* Decorative gradient orb */}
-            <div style={{
-              position: 'absolute', top: '-40px', right: '-20px', width: '200px', height: '200px',
-              background: 'radial-gradient(circle, rgba(34,211,238,0.12), rgba(139,92,246,0.08), transparent 70%)',
-              pointerEvents: 'none',
-            }} />
-            <div style={{ position: 'relative' }}>
+            <div>
               <div style={{ fontSize: '13px', color: colors.textDim, marginBottom: '6px', fontWeight: 500 }}>
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </div>
@@ -192,10 +193,10 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
               </h2>
               <p style={{ margin: 0, fontSize: '14px', color: colors.textDim }}>
                 {dashboard.clocked_in > 0
-                  ? `${dashboard.clocked_in} team member${dashboard.clocked_in > 1 ? 's' : ''} online and crushing it right now.`
+                  ? `${dashboard.clocked_in} team member${dashboard.clocked_in > 1 ? 's' : ''} online right now.`
                   : dashboard.total_employees > 0
-                    ? 'No one is clocked in yet. The calm before the storm.'
-                    : 'Add your first team member to get the party started.'}
+                    ? 'No one is clocked in yet.'
+                    : 'Add your first team member to get started.'}
               </p>
             </div>
           </div>
@@ -203,17 +204,13 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
           {/* Stat Cards */}
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '28px' }}>
             <StatCard label="Team Size" value={dashboard.total_employees} icon="👥" />
-            <StatCard label="Clocked In" value={dashboard.clocked_in} accent="#34d399" icon="🟢" sub={`of ${dashboard.total_employees}`} />
-            <StatCard label="Hours Today" value={`${dashboard.total_hours_today.toFixed(1)}h`} accent="#fbbf24" icon="⏱" />
+            <StatCard label="Clocked In" value={dashboard.clocked_in} accent={colors.green} icon="🟢" sub={`of ${dashboard.total_employees}`} />
+            <StatCard label="Hours Today" value={`${dashboard.total_hours_today.toFixed(1)}h`} accent={colors.yellow} icon="⏱" />
             <StatCard label="Tasks Done" value={dashboard.tasks_done_today} accent="#a78bfa" icon="🎯" sub={`${dashboard.pending_tasks} pending`} />
           </div>
 
           {/* Hours Chart */}
-          <Card style={{
-            marginBottom: '24px', position: 'relative', overflow: 'hidden',
-            borderTop: '2px solid transparent',
-            borderImage: 'linear-gradient(135deg, #22d3ee, #8b5cf6) 1',
-          }}>
+          <Card style={{ marginBottom: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
                 <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>Team Hours</h3>
@@ -221,7 +218,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
               </div>
               <div style={{
                 padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+                background: 'rgba(59,130,246,0.1)', color: colors.accent, border: '1px solid rgba(59,130,246,0.2)',
               }}>
                 {(dailyHours || []).reduce((sum, d) => sum + (d.hours || 0), 0).toFixed(1)}h total
               </div>
@@ -246,15 +243,9 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                       contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '10px', color: colors.text, fontSize: '13px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
                       labelStyle={{ color: colors.textMuted, fontWeight: 600 }}
                       formatter={(value) => [`${value}h`, 'Hours']}
-                      cursor={{ fill: 'rgba(34,211,238,0.06)' }}
+                      cursor={{ fill: 'rgba(59,130,246,0.06)' }}
                     />
-                    <defs>
-                      <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22d3ee" />
-                        <stop offset="100%" stopColor="#8b5cf6" />
-                      </linearGradient>
-                    </defs>
-                    <Bar dataKey="hours" fill="url(#barGrad)" radius={[6, 6, 0, 0]} maxBarSize={52} />
+                    <Bar dataKey="hours" fill={colors.accent} radius={[6, 6, 0, 0]} maxBarSize={52} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -271,15 +262,15 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
               {(dashboard.team_status || []).map(m => (
                 <div key={m.id} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 12px',
-                  borderRadius: '10px', marginBottom: '6px',
-                  background: m.is_clocked_in ? 'rgba(52,211,153,0.06)' : 'transparent',
-                  border: m.is_clocked_in ? '1px solid rgba(52,211,153,0.15)' : '1px solid transparent',
+                  borderRadius: '8px', marginBottom: '6px',
+                  background: m.is_clocked_in ? 'rgba(34,197,94,0.06)' : 'transparent',
+                  border: m.is_clocked_in ? '1px solid rgba(34,197,94,0.15)' : '1px solid transparent',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
                       width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: m.is_clocked_in ? 'rgba(52,211,153,0.15)' : colors.bgRaised,
-                      fontSize: '14px', fontWeight: 700, color: m.is_clocked_in ? '#34d399' : colors.textDim,
+                      background: m.is_clocked_in ? 'rgba(34,197,94,0.15)' : colors.bgRaised,
+                      fontSize: '14px', fontWeight: 700, color: m.is_clocked_in ? colors.green : colors.textDim,
                     }}>
                       {m.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </div>
@@ -287,7 +278,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                       <div style={{ fontSize: '14px', color: colors.text, fontWeight: 600 }}>{m.name}</div>
                       <div style={{ fontSize: '11px', color: colors.textDimmer }}>
                         {m.title || 'Team Member'} · {m.hours_today.toFixed(1)}h today
-                        {m.active_task && <span style={{ color: colors.cyan }}> · {m.active_task}</span>}
+                        {m.active_task && <span style={{ color: colors.accent }}> · {m.active_task}</span>}
                       </div>
                     </div>
                   </div>
@@ -311,7 +302,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                 <h3 style={{ margin: 0, fontSize: '15px', color: colors.text, fontWeight: 700 }}>Activity Tracking</h3>
                 <span style={{
                   fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px',
-                  background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+                  background: 'rgba(59,130,246,0.1)', color: colors.accent, border: '1px solid rgba(59,130,246,0.2)',
                 }}>LIVE</span>
               </div>
               {(activityStats || []).length === 0 ? (
@@ -328,7 +319,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                       <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{s.user_name}</span>
                       <span style={{
                         fontSize: '13px', fontWeight: 600,
-                        color: s.active_percent >= 80 ? '#34d399' : s.active_percent >= 50 ? '#fbbf24' : '#f87171',
+                        color: s.active_percent >= 80 ? colors.green : s.active_percent >= 50 ? colors.yellow : colors.red,
                       }}>
                         {s.active_percent.toFixed(0)}% active
                       </span>
@@ -336,7 +327,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                       <div style={{
                         width: `${s.active_percent}%`, height: '100%', borderRadius: '4px',
-                        background: s.active_percent >= 80 ? '#34d399' : s.active_percent >= 50 ? '#fbbf24' : '#f87171',
+                        background: s.active_percent >= 80 ? colors.green : s.active_percent >= 50 ? colors.yellow : colors.red,
                         transition: 'width 0.3s',
                       }} />
                     </div>
@@ -346,16 +337,16 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     {(s.mouse_moves > 0 || s.mouse_clicks > 0 || s.keystrokes > 0 || s.scroll_events > 0) && (
                       <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.mouse_moves}</span> moves
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{s.mouse_moves}</span> moves
                         </span>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.mouse_clicks}</span> clicks
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{s.mouse_clicks}</span> clicks
                         </span>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.keystrokes}</span> keys
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{s.keystrokes}</span> keys
                         </span>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{s.scroll_events}</span> scrolls
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{s.scroll_events}</span> scrolls
                         </span>
                       </div>
                     )}
@@ -385,8 +376,8 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                       labelStyle={{ color: colors.textMuted, fontWeight: 600 }}
                       formatter={(value, name) => [`${value}h`, name === 'active' ? 'Active' : 'Idle']}
                     />
-                    <Bar dataKey="active" stackId="a" fill="#34d399" radius={[0, 0, 0, 0]} maxBarSize={40} />
-                    <Bar dataKey="idle" stackId="a" fill="#fbbf24" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                    <Bar dataKey="active" stackId="a" fill={colors.green} radius={[0, 0, 0, 0]} maxBarSize={40} />
+                    <Bar dataKey="idle" stackId="a" fill={colors.yellow} radius={[4, 4, 0, 0]} maxBarSize={40} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -403,10 +394,9 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                   const agg = aggregations.find(a => a.user_id === emp.id);
                   const totalSec = agg ? agg.total_active_seconds + agg.total_idle_seconds : 0;
                   const activePct = totalSec > 0 ? (agg.total_active_seconds / totalSec) : 0;
-                  // Intensity: 0 = no data, through green gradient
                   const intensity = agg ? Math.min(activePct * 1.2, 1) : 0;
                   const bgColor = intensity > 0
-                    ? `rgba(52, 211, 153, ${0.1 + intensity * 0.6})`
+                    ? `rgba(34, 197, 94, ${0.1 + intensity * 0.6})`
                     : colors.bg;
 
                   return (
@@ -450,7 +440,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                       <div style={{
                         width: `${pct}%`, height: '100%', borderRadius: '4px',
-                        background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)', transition: 'width 0.3s',
+                        background: colors.accent, transition: 'width 0.3s',
                       }} />
                     </div>
                   </div>
@@ -482,7 +472,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     <Btn variant="secondary" onClick={() => { if (confirm('Deactivate this employee?')) { api.deleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px' }}>
                       Deactivate
                     </Btn>
-                    <Btn variant="secondary" onClick={() => { if (confirm('PERMANENTLY DELETE this employee and ALL their data? This cannot be undone.')) { api.hardDeleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px', borderColor: '#f87171', color: '#f87171' }}>
+                    <Btn variant="secondary" onClick={() => { if (confirm('PERMANENTLY DELETE this employee and ALL their data? This cannot be undone.')) { api.hardDeleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px', borderColor: colors.red, color: colors.red }}>
                       Delete
                     </Btn>
                   </div>
@@ -493,39 +483,131 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
         </div>
       )}
 
-      {/* ═══ TIME ENTRIES ═══════════════════════════════════ */}
-      {tab === 'time' && (
+      {/* ═══ WORK SESSIONS ═══════════════════════════════════ */}
+      {tab === 'sessions' && (
         <div>
-          <PageHeader title="Time Entries" />
-          {timeEntries.length === 0 ? (
-            <EmptyState icon="⏱" message="No time entries yet." />
+          <PageHeader title="Work Sessions" right={
+            <input type="date" value={sessionDate} onChange={e => setSessionDate(e.target.value)} style={{
+              padding: '8px 12px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
+              borderRadius: '6px', color: colors.textMuted, fontSize: '13px', outline: 'none',
+            }} />
+          } />
+          {(clockSessions || []).length === 0 ? (
+            <EmptyState icon="⏱" message={`No work sessions for ${formatDate(sessionDate)}.`} />
           ) : (
-            <Card style={{ overflow: 'hidden', padding: 0 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
-                    {['Employee', 'Date', 'Clock In', 'Clock Out', 'Duration'].map(h => (
-                      <th key={h} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', color: colors.textDim, fontWeight: 600, textTransform: 'uppercase' }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {timeEntries.map(entry => (
-                    <tr key={entry.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.text }}>{entry.user?.name || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.textMuted }}>{formatDate(entry.clock_in)}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.textMuted }}>{new Date(entry.clock_in).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.textMuted }}>
-                        {entry.clock_out ? new Date(entry.clock_out).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : <Badge status="clocked-in" />}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '13px', color: colors.cyan, fontWeight: 500 }}>
-                        {entry.duration_seconds ? formatTime(entry.duration_seconds) : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {clockSessions.map((sess, idx) => {
+                const entry = sess.time_entry;
+                const isExpanded = expandedSession === idx;
+                const duration = entry.duration_seconds || (entry.clock_out ? 0 : Math.floor((Date.now() - new Date(entry.clock_in).getTime()) / 1000));
+                return (
+                  <Card key={entry.id} style={{ padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isExpanded ? '16px' : 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: !entry.clock_out ? 'rgba(34,197,94,0.15)' : colors.bgRaised,
+                          fontSize: '12px', fontWeight: 700, color: !entry.clock_out ? colors.green : colors.textDim,
+                        }}>
+                          {(entry.user?.name || '?').split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text }}>
+                            {entry.user?.name || 'Unknown'}
+                            {!entry.clock_out && <Badge status="clocked-in" />}
+                          </div>
+                          <div style={{ fontSize: '12px', color: colors.textDim }}>
+                            {new Date(entry.clock_in).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                            {' → '}
+                            {entry.clock_out
+                              ? new Date(entry.clock_out).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                              : 'now'}
+                            {' · '}{formatTime(duration)}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ textAlign: 'right', fontSize: '11px', color: colors.textDim }}>
+                          <div><span style={{ color: colors.green, fontWeight: 600 }}>{formatTime(sess.total_active_seconds)}</span> active</div>
+                          <div><span style={{ color: colors.yellow, fontWeight: 600 }}>{formatTime(sess.total_idle_seconds)}</span> idle</div>
+                        </div>
+                        <div style={{ textAlign: 'right', fontSize: '11px', color: colors.textDim }}>
+                          <div>{sess.total_mouse_clicks} clicks</div>
+                          <div>{sess.total_keystrokes} keys</div>
+                        </div>
+                        <button onClick={() => setExpandedSession(isExpanded ? null : idx)} style={{
+                          background: 'none', border: `1px solid ${colors.borderLight}`, borderRadius: '6px',
+                          padding: '4px 10px', cursor: 'pointer', color: colors.textDim, fontSize: '11px',
+                        }}>
+                          {isExpanded ? 'Collapse' : 'Expand'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div>
+                        {/* Top apps */}
+                        {(sess.top_apps || []).length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: colors.textDim, marginBottom: '8px' }}>Top Apps</div>
+                            {sess.top_apps.map((app, i) => {
+                              const maxDur = sess.top_apps[0]?.duration || 1;
+                              return (
+                                <div key={i} style={{ marginBottom: '6px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                    <span style={{ fontSize: '12px', color: colors.text }}>{app.app_name}</span>
+                                    <span style={{ fontSize: '11px', color: colors.textDim }}>{formatTime(app.duration)}</span>
+                                  </div>
+                                  <div style={{ background: colors.bg, borderRadius: '3px', height: '4px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${(app.duration / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: colors.accent }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Timeline */}
+                        <DayTimeline segments={sess.segments || []} />
+
+                        {/* Segment detail table */}
+                        {(sess.segments || []).length > 0 && (
+                          <div style={{ marginTop: '16px', maxHeight: '300px', overflow: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                              <thead>
+                                <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                  {['Time', 'Type', 'App', 'Duration', 'Clicks', 'Keys'].map(h => (
+                                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: colors.textDim, fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sess.segments.map((seg, i) => (
+                                  <tr key={i} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>
+                                      {new Date(seg.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                      {' — '}
+                                      {new Date(seg.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                    <td style={{ padding: '6px 10px' }}>
+                                      <Badge status={seg.segment_type} />
+                                    </td>
+                                    <td style={{ padding: '6px 10px', color: colors.text }}>{seg.app_name || '—'}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.accent, fontWeight: 500 }}>{formatTime(seg.duration_seconds)}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_clicks}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.keystrokes}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
@@ -538,7 +620,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
             {['all', 'pending', 'in_progress', 'complete'].map(f => (
               <button key={f} onClick={() => setTaskFilter(f)} style={{
                 padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
-                background: taskFilter === f ? colors.gradient : 'transparent', color: taskFilter === f ? '#fff' : colors.textDim,
+                background: taskFilter === f ? colors.accent : 'transparent', color: taskFilter === f ? '#fff' : colors.textDim,
                 border: taskFilter === f ? 'none' : `1px solid ${colors.borderLight}`,
               }}>
                 {f === 'all' ? 'All' : f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -555,7 +637,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                 return (
                   <Card key={task.id} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    border: isOverdue ? '1px solid #5c1a1a' : undefined,
+                    border: isOverdue ? `1px solid ${colors.red}33` : undefined,
                   }}>
                     <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => cycleTask(task)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
@@ -593,7 +675,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
               {kpis.map(kpi => {
                 const pct = kpi.target > 0 ? Math.min((kpi.current / kpi.target) * 100, 120) : 0;
                 const status = pct >= 100 ? 'exceeded' : pct >= 70 ? 'on-track' : 'behind';
-                const barColor = status === 'exceeded' ? '#a78bfa' : status === 'on-track' ? '#34d399' : '#f87171';
+                const barColor = status === 'exceeded' ? '#a78bfa' : status === 'on-track' ? colors.green : colors.red;
                 return (
                   <Card key={kpi.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
@@ -628,17 +710,17 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
         </div>
       )}
 
-      {/* ═══ STANDUPS ═══════════════════════════════════════ */}
-      {tab === 'standups' && (
+      {/* ═══ DAILY FEEDBACK ═══════════════════════════════════ */}
+      {tab === 'feedback' && (
         <div>
-          <PageHeader title="Daily Standups" right={
+          <PageHeader title="Daily Feedback" right={
             <input type="date" value={standupDate} onChange={e => setStandupDate(e.target.value)} style={{
               padding: '8px 12px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
               borderRadius: '6px', color: colors.textMuted, fontSize: '13px', outline: 'none',
             }} />
           } />
           {standups.length === 0 ? (
-            <EmptyState icon="🗓️" message={`No standups for ${formatDate(standupDate)}.`} />
+            <EmptyState icon="🗓️" message={`No feedback for ${formatDate(standupDate)}.`} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {standups.map(s => (
@@ -652,16 +734,16 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
                     <div>
-                      <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>✅ Yesterday</div>
+                      <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>✅ Accomplishments</div>
                       <div style={{ fontSize: '13px', color: colors.textMuted, lineHeight: 1.5 }}>{s.yesterday || '—'}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>🎯 Today</div>
+                      <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>🎯 Tomorrow</div>
                       <div style={{ fontSize: '13px', color: colors.textMuted, lineHeight: 1.5 }}>{s.today}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>🚧 Blockers</div>
-                      <div style={{ fontSize: '13px', color: s.blockers ? '#f87171' : '#94a3b8', lineHeight: 1.5 }}>{s.blockers || 'None'}</div>
+                      <div style={{ fontSize: '13px', color: s.blockers ? colors.red : colors.textMuted, lineHeight: 1.5 }}>{s.blockers || 'None'}</div>
                     </div>
                   </div>
                 </Card>
@@ -694,8 +776,8 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                       <div style={{
                         width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: agg ? 'rgba(52,211,153,0.15)' : colors.bgRaised, fontSize: '12px', fontWeight: 700,
-                        color: agg ? '#34d399' : colors.textDim, cursor: 'pointer',
+                        background: agg ? 'rgba(34,197,94,0.15)' : colors.bgRaised, fontSize: '12px', fontWeight: 700,
+                        color: agg ? colors.green : colors.textDim, cursor: 'pointer',
                       }} onClick={() => onViewEmployee?.(emp.id)}>
                         {emp.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                       </div>
@@ -746,7 +828,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                                       <Badge status={seg.segment_type} />
                                     </td>
                                     <td style={{ padding: '6px 10px', color: colors.text }}>{seg.app_name || '—'}</td>
-                                    <td style={{ padding: '6px 10px', color: colors.cyan, fontWeight: 500 }}>{formatTime(seg.duration_seconds)}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.accent, fontWeight: 500 }}>{formatTime(seg.duration_seconds)}</td>
                                     <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_clicks}</td>
                                     <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.keystrokes}</td>
                                   </tr>
@@ -771,7 +853,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                                       <span style={{ fontSize: '11px', color: colors.textDim }}>{formatTime(app.Duration)}</span>
                                     </div>
                                     <div style={{ background: colors.bg, borderRadius: '3px', height: '4px', overflow: 'hidden' }}>
-                                      <div style={{ width: `${(app.Duration / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)' }} />
+                                      <div style={{ width: `${(app.Duration / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: colors.accent }} />
                                     </div>
                                   </div>
                                 ));
@@ -811,7 +893,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     <h3 style={{ margin: 0, fontSize: '15px', color: colors.text, fontWeight: 700 }}>Active Applications</h3>
                     <span style={{
                       fontSize: '11px', fontWeight: 600, padding: '3px 10px', borderRadius: '6px',
-                      background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+                      background: 'rgba(59,130,246,0.1)', color: colors.accent, border: '1px solid rgba(59,130,246,0.2)',
                     }}>LIVE</span>
                   </div>
                   {agentMonitor.map((m, i) => (
@@ -822,19 +904,19 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{
                             width: '8px', height: '8px', borderRadius: '50%', display: 'inline-block',
-                            background: m.is_online ? '#34d399' : '#64748b',
-                            boxShadow: m.is_online ? '0 0 6px rgba(52,211,153,0.5)' : 'none',
+                            background: m.is_online ? colors.green : colors.textDim,
+                            boxShadow: m.is_online ? '0 0 6px rgba(34,197,94,0.5)' : 'none',
                           }} />
                           <span style={{ fontSize: '13px', color: colors.text, fontWeight: 600 }}>{m.user_name}</span>
-                          <span style={{ fontSize: '10px', color: m.is_online ? '#34d399' : colors.textDimmer, fontWeight: 600 }}>
+                          <span style={{ fontSize: '10px', color: m.is_online ? colors.green : colors.textDimmer, fontWeight: 600 }}>
                             {m.is_online ? 'ONLINE' : 'OFFLINE'}
                           </span>
                         </div>
                         <span style={{
                           fontSize: '12px', fontWeight: 500, padding: '2px 8px', borderRadius: '6px',
-                          background: m.is_online ? 'rgba(139,92,246,0.1)' : 'rgba(100,116,139,0.1)',
+                          background: m.is_online ? 'rgba(99,102,241,0.1)' : 'rgba(100,116,139,0.1)',
                           color: m.is_online ? '#a78bfa' : colors.textDim,
-                          border: `1px solid ${m.is_online ? 'rgba(139,92,246,0.2)' : 'rgba(100,116,139,0.2)'}`,
+                          border: `1px solid ${m.is_online ? 'rgba(99,102,241,0.2)' : 'rgba(100,116,139,0.2)'}`,
                         }}>
                           {m.active_app || 'No app'}
                         </span>
@@ -846,19 +928,19 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                       )}
                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.mouse_moves}</span> moves
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{m.mouse_moves}</span> moves
                         </span>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.mouse_clicks}</span> clicks
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{m.mouse_clicks}</span> clicks
                         </span>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.keystrokes}</span> keys
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{m.keystrokes}</span> keys
                         </span>
                         <span style={{ fontSize: '11px', color: colors.textDim }}>
-                          <span style={{ color: colors.cyan, fontWeight: 600 }}>{m.scroll_events}</span> scrolls
+                          <span style={{ color: colors.accent, fontWeight: 600 }}>{m.scroll_events}</span> scrolls
                         </span>
                         {m.idle_seconds > 0 && (
-                          <span style={{ fontSize: '11px', color: m.idle_seconds > 60 ? '#f87171' : colors.textDimmer }}>
+                          <span style={{ fontSize: '11px', color: m.idle_seconds > 60 ? colors.red : colors.textDimmer }}>
                             idle {m.idle_seconds}s
                           </span>
                         )}
@@ -887,7 +969,7 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                         <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
                           <div style={{
                             width: `${pct}%`, height: '100%', borderRadius: '4px',
-                            background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)',
+                            background: colors.accent,
                             transition: 'width 0.3s',
                           }} />
                         </div>

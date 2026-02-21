@@ -66,7 +66,7 @@ export default function EmployeeDetail({ employeeId, onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(34,211,238,0.1)', fontSize: '20px', fontWeight: 700, color: colors.cyan,
+            background: 'rgba(59,130,246,0.1)', fontSize: '20px', fontWeight: 700, color: colors.accent,
           }}>
             {employee.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
           </div>
@@ -88,10 +88,10 @@ export default function EmployeeDetail({ employeeId, onBack }) {
 
       {/* Summary cards */}
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
-        <StatCard label="Active Time" value={formatTime(totalActive)} accent="#34d399" />
-        <StatCard label="Idle Time" value={formatTime(totalIdle)} accent="#fbbf24" />
-        <StatCard label="Active %" value={`${activePercent}%`} accent={activePercent >= 80 ? '#34d399' : activePercent >= 50 ? '#fbbf24' : '#f87171'} />
-        <StatCard label="Events" value={`${(agg?.total_mouse_clicks || 0) + (agg?.total_keystrokes || 0)}`} accent={colors.cyan}
+        <StatCard label="Active Time" value={formatTime(totalActive)} accent={colors.green} />
+        <StatCard label="Idle Time" value={formatTime(totalIdle)} accent={colors.yellow} />
+        <StatCard label="Active %" value={`${activePercent}%`} accent={activePercent >= 80 ? colors.green : activePercent >= 50 ? colors.yellow : colors.red} />
+        <StatCard label="Events" value={`${(agg?.total_mouse_clicks || 0) + (agg?.total_keystrokes || 0)}`} accent={colors.accent}
           sub={`${agg?.total_mouse_moves || 0} moves`} />
       </div>
 
@@ -117,7 +117,7 @@ export default function EmployeeDetail({ employeeId, onBack }) {
                     <span style={{ fontSize: '12px', color: colors.textDim }}>{formatTime(app.Duration)}</span>
                   </div>
                   <div style={{ background: colors.bg, borderRadius: '3px', height: '5px', overflow: 'hidden' }}>
-                    <div style={{ width: `${(app.Duration / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)' }} />
+                    <div style={{ width: `${(app.Duration / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: colors.accent }} />
                   </div>
                 </div>
               );
@@ -133,7 +133,7 @@ export default function EmployeeDetail({ employeeId, onBack }) {
           ) : (
             kpis.map(kpi => {
               const pct = kpi.target > 0 ? Math.min((kpi.current / kpi.target) * 100, 120) : 0;
-              const barColor = pct >= 100 ? '#a78bfa' : pct >= 70 ? '#34d399' : '#f87171';
+              const barColor = pct >= 100 ? '#a78bfa' : pct >= 70 ? colors.green : colors.red;
               return (
                 <div key={kpi.id} style={{ marginBottom: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -150,23 +150,23 @@ export default function EmployeeDetail({ employeeId, onBack }) {
         </Card>
       </div>
 
-      {/* Standup history */}
+      {/* Feedback history */}
       {standups.length > 0 && (
         <Card>
-          <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>Standup ({formatDate(date)})</h3>
+          <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>Feedback ({formatDate(date)})</h3>
           {standups.map(s => (
             <div key={s.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: colors.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Yesterday</div>
+                <div style={{ fontSize: '10px', color: colors.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Accomplishments</div>
                 <div style={{ fontSize: '12px', color: colors.textMuted }}>{s.yesterday || '—'}</div>
               </div>
               <div>
-                <div style={{ fontSize: '10px', color: colors.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Today</div>
+                <div style={{ fontSize: '10px', color: colors.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Tomorrow</div>
                 <div style={{ fontSize: '12px', color: colors.textMuted }}>{s.today}</div>
               </div>
               <div>
                 <div style={{ fontSize: '10px', color: colors.textDim, fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>Blockers</div>
-                <div style={{ fontSize: '12px', color: s.blockers ? '#f87171' : colors.textMuted }}>{s.blockers || 'None'}</div>
+                <div style={{ fontSize: '12px', color: s.blockers ? colors.red : colors.textMuted }}>{s.blockers || 'None'}</div>
               </div>
             </div>
           ))}

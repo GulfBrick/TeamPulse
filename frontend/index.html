@@ -10,76 +10,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Inter', system-ui, sans-serif; background: #06060e; color: #e2e8f0; -webkit-font-smoothing: antialiased; }
+      body { font-family: 'Inter', system-ui, sans-serif; background: #0c0d12; color: #eceef4; -webkit-font-smoothing: antialiased; }
       ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: #06060e; }
-      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
-      ::-webkit-scrollbar-thumb:hover { background: #334155; }
+      ::-webkit-scrollbar-track { background: #0c0d12; }
+      ::-webkit-scrollbar-thumb { background: #23252f; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #2e3040; }
 
-      /* ─── Brand Animations ─── */
-      @keyframes pulse-glow {
-        0%, 100% { filter: drop-shadow(0 0 12px rgba(0, 200, 255, 0.5)); }
-        50% { filter: drop-shadow(0 0 30px rgba(0, 200, 255, 0.8)) drop-shadow(0 0 60px rgba(139, 92, 246, 0.4)); }
-      }
-      @keyframes pulse-ring {
-        0% { transform: scale(1); opacity: 0.5; }
-        100% { transform: scale(2); opacity: 0; }
-      }
       @keyframes fade-in-up {
         from { opacity: 0; transform: translateY(16px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      @keyframes float-orb {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        25% { transform: translate(30px, -40px) scale(1.1); }
-        50% { transform: translate(-20px, -60px) scale(0.95); }
-        75% { transform: translate(40px, -20px) scale(1.05); }
-      }
 
-      @keyframes activity-pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.15); }
-      }
-
-      .logo-pulse { animation: pulse-glow 3s ease-in-out infinite; }
-      .logo-ring {
-        position: absolute; inset: -4px; border-radius: 12px;
-        border: 1px solid rgba(0, 200, 255, 0.3);
-        animation: pulse-ring 3s ease-in-out infinite;
-        pointer-events: none;
-      }
       .fade-in { animation: fade-in-up 0.5s ease-out both; }
-
-      /* ─── Floating background orbs ─── */
-      .orb {
-        position: fixed; border-radius: 50%; pointer-events: none;
-        filter: blur(80px); opacity: 0.4;
-        animation: float-orb 20s ease-in-out infinite;
-      }
-      .orb-1 {
-        width: 500px; height: 500px; top: -10%; left: -10%;
-        background: radial-gradient(circle, rgba(34,211,238,0.15), transparent 70%);
-        animation-duration: 25s;
-      }
-      .orb-2 {
-        width: 600px; height: 600px; bottom: -15%; right: -10%;
-        background: radial-gradient(circle, rgba(139,92,246,0.12), transparent 70%);
-        animation-duration: 30s; animation-delay: -5s;
-      }
-      .orb-3 {
-        width: 400px; height: 400px; top: 40%; left: 50%;
-        background: radial-gradient(circle, rgba(59,130,246,0.1), transparent 70%);
-        animation-duration: 22s; animation-delay: -10s;
-      }
 
       /* ─── Focus States ─── */
       input:focus, select:focus, textarea:focus {
-        border-color: #22d3ee !important;
-        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15) !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
         outline: none;
       }
 
-      /* ─── Button hover glow ─── */
+      /* ─── Button hover ─── */
       button { transition: all 0.2s ease; }
       button:hover { filter: brightness(1.1); }
     </style>

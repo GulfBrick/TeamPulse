@@ -10,15 +10,16 @@ const adminNavItems = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'team', label: 'Team' },
   { key: 'timeline', label: 'Timeline' },
-  { key: 'time', label: 'Time Entries' },
+  { key: 'sessions', label: 'Work Sessions' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'kpis', label: 'KPIs' },
-  { key: 'standups', label: 'Standups' },
+  { key: 'feedback', label: 'Daily Feedback' },
   { key: 'monitoring', label: 'Monitoring' },
 ];
 
 const employeeNavItems = [
   { key: 'clock', label: 'Time Clock' },
+  { key: 'sessions', label: 'My Sessions' },
   { key: 'timeline', label: 'My Timeline' },
   { key: 'tasks', label: 'My Tasks' },
   { key: 'kpis', label: 'My KPIs' },
@@ -70,7 +71,7 @@ export default function App() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', background: colors.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="logo-pulse"><Logo size={100} glow /></div>
+        <Logo size={100} />
       </div>
     );
   }

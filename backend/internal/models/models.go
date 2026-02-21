@@ -315,3 +315,20 @@ type TimelineResponse struct {
 	Segments    []ActivitySegment `json:"segments"`
 	Aggregation *DailyAggregation `json:"aggregation"`
 }
+
+// ─── Clock Session DTOs ──────────────────────────────────────
+
+type AppDur struct {
+	AppName  string `json:"app_name"`
+	Duration int    `json:"duration"`
+}
+
+type ClockSessionResponse struct {
+	TimeEntry          TimeEntry         `json:"time_entry"`
+	TotalActiveSeconds int               `json:"total_active_seconds"`
+	TotalIdleSeconds   int               `json:"total_idle_seconds"`
+	TotalMouseClicks   int               `json:"total_mouse_clicks"`
+	TotalKeystrokes    int               `json:"total_keystrokes"`
+	TopApps            []AppDur          `json:"top_apps"`
+	Segments           []ActivitySegment `json:"segments"`
+}

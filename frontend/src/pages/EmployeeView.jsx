@@ -18,6 +18,9 @@ export default function EmployeeView({ section }) {
   const [dailyHours, setDailyHours] = useState([]);
   const [mySegments, setMySegments] = useState([]);
   const [segmentDate, setSegmentDate] = useState(todayStr());
+  const [mySessions, setMySessions] = useState([]);
+  const [sessionDate, setSessionDate] = useState(todayStr());
+  const [expandedSession, setExpandedSession] = useState(null);
   const tab = section || 'clock';
 
   // Agent onboarding
@@ -60,20 +63,23 @@ export default function EmployeeView({ section }) {
     api.getMySegments(segmentDate).then(setMySegments).catch(() => setMySegments([]));
   }, [tab, segmentDate]);
 
+  // Load sessions for My Sessions
+  useEffect(() => {
+    if (tab !== 'sessions') return;
+    api.getMyClockSessions(sessionDate).then(setMySessions).catch(() => setMySessions([]));
+  }, [tab, sessionDate]);
+
   // Check agent setup status on mount — show onboarding if not done
   useEffect(() => {
-    // First check from cached user data (available immediately from login)
     if (api.user && !api.user.agent_setup_done) {
       setShowOnboarding(true);
       return;
     }
-    // Fallback: fetch fresh status from API
     api.getAgentStatus().then(status => {
       if (!status.agent_setup_done) {
         setShowOnboarding(true);
       }
     }).catch(() => {
-      // If status check fails, assume agent not set up
       if (!api.user?.agent_setup_done) {
         setShowOnboarding(true);
       }
@@ -82,7 +88,6 @@ export default function EmployeeView({ section }) {
 
   const startAgentDownload = async () => {
     setOnboardingStep(2);
-    // Trigger download
     const link = document.createElement('a');
     link.href = '/api/agent/download';
     link.download = 'TeamPulseAgent-Setup.exe';
@@ -163,7 +168,7 @@ export default function EmployeeView({ section }) {
     refresh();
   };
 
-  const priorityColor = { high: '#f87171', medium: '#fbbf24', low: '#34d399' };
+  const priorityColor = { high: colors.red, medium: colors.yellow, low: colors.green };
   const myTasks = tasks.filter(t => t.status !== 'complete');
   const completedToday = tasks.filter(t => t.status === 'complete');
 
@@ -184,30 +189,21 @@ export default function EmployeeView({ section }) {
 
           <Card style={{
             textAlign: 'center', padding: '48px 32px', marginBottom: '24px', position: 'relative', overflow: 'hidden',
-            border: clockStatus.clocked_in ? '1px solid rgba(52,211,153,0.3)' : `1px solid ${colors.borderLight}`,
+            border: clockStatus.clocked_in ? `1px solid rgba(34,197,94,0.3)` : `1px solid ${colors.border}`,
             background: clockStatus.clocked_in
-              ? 'linear-gradient(180deg, rgba(52,211,153,0.06), #0f0f1c)'
-              : `linear-gradient(180deg, ${colors.card}, ${colors.card})`,
+              ? 'linear-gradient(180deg, rgba(34,197,94,0.06), #16171f)'
+              : colors.card,
           }}>
-            {/* Animated glow when clocked in */}
-            {clockStatus.clocked_in && (
+            <div>
               <div style={{
-                position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)',
-                width: '300px', height: '200px',
-                background: 'radial-gradient(circle, rgba(52,211,153,0.15), transparent 70%)',
-                pointerEvents: 'none', animation: 'activity-pulse 3s ease-in-out infinite',
-              }} />
-            )}
-            <div style={{ position: 'relative' }}>
-              <div style={{
-                fontSize: '12px', color: clockStatus.clocked_in ? '#34d399' : colors.textDim,
+                fontSize: '12px', color: clockStatus.clocked_in ? colors.green : colors.textDim,
                 marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 700,
               }}>
                 {clockStatus.clocked_in ? '● Session Active' : 'Ready to Clock In'}
               </div>
               <div style={{
                 fontSize: '56px', fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginBottom: '28px', lineHeight: 1,
-                color: clockStatus.clocked_in ? '#34d399' : '#475569',
+                color: clockStatus.clocked_in ? colors.green : colors.textDimmer,
               }}>
                 {clockStatus.clocked_in ? formatTime(elapsed) : '0h 0m'}
               </div>
@@ -216,7 +212,6 @@ export default function EmployeeView({ section }) {
                 onClick={handleClock}
                 style={{
                   padding: '16px 56px', fontSize: '16px', fontWeight: 700, borderRadius: '12px',
-                  boxShadow: clockStatus.clocked_in ? '0 4px 24px rgba(220,38,38,0.3)' : '0 4px 24px rgba(5,150,105,0.3)',
                 }}
               >
                 {clockStatus.clocked_in ? '⏹ Clock Out' : '▶ Clock In'}
@@ -226,12 +221,11 @@ export default function EmployeeView({ section }) {
 
           {clockStatus.clocked_in && (
             <Card style={{
-              marginBottom: '24px', borderLeft: '3px solid #34d399',
-              background: 'linear-gradient(135deg, rgba(52,211,153,0.04), transparent)',
+              marginBottom: '24px', borderLeft: `3px solid ${colors.green}`,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: '13px', color: '#34d399', marginBottom: '4px', fontWeight: 600 }}>Activity Tracking Active</div>
+                  <div style={{ fontSize: '13px', color: colors.green, marginBottom: '4px', fontWeight: 600 }}>Activity Tracking Active</div>
                   <div style={{ fontSize: '13px', color: colors.textDim }}>
                     Stay active and you'll get occasional check-ins to confirm you're here.
                   </div>
@@ -242,14 +236,11 @@ export default function EmployeeView({ section }) {
           )}
 
           <Btn variant="secondary" onClick={() => setShowStandup(true)} style={{ marginBottom: '16px' }}>
-            📝 Log Daily Standup
+            📝 Daily Feedback
           </Btn>
 
           {/* Hours Chart */}
-          <Card style={{
-            marginTop: '8px', position: 'relative', overflow: 'hidden',
-            borderTop: '2px solid transparent', borderImage: 'linear-gradient(135deg, #22d3ee, #8b5cf6) 1',
-          }}>
+          <Card style={{ marginTop: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
                 <h3 style={{ margin: '0 0 4px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>My Hours</h3>
@@ -257,7 +248,7 @@ export default function EmployeeView({ section }) {
               </div>
               <div style={{
                 padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                background: 'rgba(34,211,238,0.1)', color: colors.cyan, border: '1px solid rgba(34,211,238,0.2)',
+                background: 'rgba(59,130,246,0.1)', color: colors.accent, border: '1px solid rgba(59,130,246,0.2)',
               }}>
                 {(dailyHours || []).reduce((sum, d) => sum + (d.hours || 0), 0).toFixed(1)}h total
               </div>
@@ -282,20 +273,132 @@ export default function EmployeeView({ section }) {
                       contentStyle={{ background: colors.card, border: `1px solid ${colors.borderLight}`, borderRadius: '10px', color: colors.text, fontSize: '13px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}
                       labelStyle={{ color: colors.textMuted, fontWeight: 600 }}
                       formatter={(value) => [`${value}h`, 'Hours']}
-                      cursor={{ fill: 'rgba(34,211,238,0.06)' }}
+                      cursor={{ fill: 'rgba(59,130,246,0.06)' }}
                     />
-                    <defs>
-                      <linearGradient id="empBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#22d3ee" />
-                        <stop offset="100%" stopColor="#8b5cf6" />
-                      </linearGradient>
-                    </defs>
-                    <Bar dataKey="hours" fill="url(#empBarGrad)" radius={[6, 6, 0, 0]} maxBarSize={52} />
+                    <Bar dataKey="hours" fill={colors.accent} radius={[6, 6, 0, 0]} maxBarSize={52} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
           </Card>
+        </div>
+      )}
+
+      {/* ─── My Sessions ─────────────────────────────────── */}
+      {tab === 'sessions' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: colors.text }}>My Sessions</h2>
+            <input type="date" value={sessionDate} onChange={e => setSessionDate(e.target.value)} style={{
+              padding: '8px 12px', background: colors.bg, border: `1px solid ${colors.borderLight}`,
+              borderRadius: '6px', color: colors.textMuted, fontSize: '13px', outline: 'none',
+            }} />
+          </div>
+
+          {(mySessions || []).length === 0 ? (
+            <EmptyState icon="⏱" message={`No sessions for ${formatDate(sessionDate)}.`} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {mySessions.map((sess, idx) => {
+                const entry = sess.time_entry;
+                const isExpanded = expandedSession === idx;
+                const duration = entry.duration_seconds || (entry.clock_out ? 0 : Math.floor((Date.now() - new Date(entry.clock_in).getTime()) / 1000));
+                return (
+                  <Card key={entry.id} style={{ padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isExpanded ? '16px' : 0 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 600, color: colors.text }}>
+                            {new Date(entry.clock_in).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                            {' → '}
+                            {entry.clock_out
+                              ? new Date(entry.clock_out).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                              : 'now'}
+                          </span>
+                          {!entry.clock_out && <Badge status="clocked-in" />}
+                        </div>
+                        <div style={{ fontSize: '12px', color: colors.textDim, marginTop: '2px' }}>
+                          {formatTime(duration)} total · {formatTime(sess.total_active_seconds)} active · {formatTime(sess.total_idle_seconds)} idle
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ textAlign: 'right', fontSize: '11px', color: colors.textDim }}>
+                          <div>{sess.total_mouse_clicks} clicks · {sess.total_keystrokes} keys</div>
+                        </div>
+                        <button onClick={() => setExpandedSession(isExpanded ? null : idx)} style={{
+                          background: 'none', border: `1px solid ${colors.borderLight}`, borderRadius: '6px',
+                          padding: '4px 10px', cursor: 'pointer', color: colors.textDim, fontSize: '11px',
+                        }}>
+                          {isExpanded ? 'Collapse' : 'Expand'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div>
+                        {/* Top apps */}
+                        {(sess.top_apps || []).length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: colors.textDim, marginBottom: '8px' }}>Top Apps</div>
+                            {sess.top_apps.map((app, i) => {
+                              const maxDur = sess.top_apps[0]?.duration || 1;
+                              return (
+                                <div key={i} style={{ marginBottom: '6px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                    <span style={{ fontSize: '12px', color: colors.text }}>{app.app_name}</span>
+                                    <span style={{ fontSize: '11px', color: colors.textDim }}>{formatTime(app.duration)}</span>
+                                  </div>
+                                  <div style={{ background: colors.bg, borderRadius: '3px', height: '4px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${(app.duration / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: colors.accent }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Timeline */}
+                        <DayTimeline segments={sess.segments || []} />
+
+                        {/* Segment detail table */}
+                        {(sess.segments || []).length > 0 && (
+                          <div style={{ marginTop: '16px', maxHeight: '300px', overflow: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                              <thead>
+                                <tr style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                  {['Time', 'Type', 'App', 'Duration', 'Clicks', 'Keys'].map(h => (
+                                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: colors.textDim, fontWeight: 600, fontSize: '10px', textTransform: 'uppercase' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sess.segments.map((seg, i) => (
+                                  <tr key={i} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>
+                                      {new Date(seg.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                      {' — '}
+                                      {new Date(seg.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                    </td>
+                                    <td style={{ padding: '6px 10px' }}>
+                                      <Badge status={seg.segment_type} />
+                                    </td>
+                                    <td style={{ padding: '6px 10px', color: colors.text }}>{seg.app_name || '—'}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.accent, fontWeight: 500 }}>{formatTime(seg.duration_seconds)}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_clicks}</td>
+                                    <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.keystrokes}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -332,7 +435,7 @@ export default function EmployeeView({ section }) {
                       <span style={{ fontSize: '12px', color: colors.textDim }}>{formatTime(dur)}</span>
                     </div>
                     <div style={{ background: colors.bg, borderRadius: '3px', height: '5px', overflow: 'hidden' }}>
-                      <div style={{ width: `${(dur / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: 'linear-gradient(90deg, #22d3ee, #8b5cf6)' }} />
+                      <div style={{ width: `${(dur / maxDur) * 100}%`, height: '100%', borderRadius: '3px', background: colors.accent }} />
                     </div>
                   </div>
                 ));
@@ -350,8 +453,8 @@ export default function EmployeeView({ section }) {
       {tab === 'tasks' && (
         <div>
           <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
-            <StatCard label="Active Tasks" value={myTasks.length} accent="#60a5fa" />
-            <StatCard label="Completed" value={completedToday.length} accent="#34d399" sub="all time" />
+            <StatCard label="Active Tasks" value={myTasks.length} accent={colors.accentLight} />
+            <StatCard label="Completed" value={completedToday.length} accent={colors.green} sub="all time" />
           </div>
 
           {myTasks.length === 0 ? (
@@ -364,7 +467,7 @@ export default function EmployeeView({ section }) {
                 return (
                   <Card key={task.id} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    border: isTimerActive ? '1px solid #065f46' : undefined,
+                    border: isTimerActive ? `1px solid rgba(34,197,94,0.3)` : undefined,
                   }}>
                     <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => cycleTask(task)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
@@ -403,7 +506,7 @@ export default function EmployeeView({ section }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
               {kpis.map(kpi => {
                 const pct = kpi.target > 0 ? Math.min((kpi.current / kpi.target) * 100, 120) : 0;
-                const barColor = pct >= 100 ? '#a78bfa' : pct >= 70 ? '#34d399' : '#f87171';
+                const barColor = pct >= 100 ? '#a78bfa' : pct >= 70 ? colors.green : colors.red;
                 return (
                   <Card key={kpi.id}>
                     <div style={{ fontSize: '14px', fontWeight: 600, color: colors.text, marginBottom: '8px' }}>{kpi.metric}</div>
@@ -423,11 +526,11 @@ export default function EmployeeView({ section }) {
         </div>
       )}
 
-      {/* ─── Standup Modal ───────────────────────────────── */}
+      {/* ─── Daily Feedback Modal ─────────────────────────── */}
       {showStandup && (
-        <Modal title="Daily Standup" onClose={() => setShowStandup(false)}>
-          <Input label="What did you do yesterday?" type="textarea" value={standupForm.yesterday} onChange={e => setStandupForm({ ...standupForm, yesterday: e.target.value })} placeholder="Completed tasks..." />
-          <Input label="What are you working on today?" type="textarea" value={standupForm.today} onChange={e => setStandupForm({ ...standupForm, today: e.target.value })} placeholder="Today's plan..." />
+        <Modal title="Daily Feedback" onClose={() => setShowStandup(false)}>
+          <Input label="What did you accomplish today?" type="textarea" value={standupForm.yesterday} onChange={e => setStandupForm({ ...standupForm, yesterday: e.target.value })} placeholder="Completed tasks..." />
+          <Input label="What's your plan for tomorrow?" type="textarea" value={standupForm.today} onChange={e => setStandupForm({ ...standupForm, today: e.target.value })} placeholder="Tomorrow's plan..." />
           <Input label="Any blockers?" type="textarea" value={standupForm.blockers} onChange={e => setStandupForm({ ...standupForm, blockers: e.target.value })} placeholder="Issues (optional)" />
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
             <Btn variant="secondary" onClick={() => setShowStandup(false)}>Cancel</Btn>
@@ -464,21 +567,21 @@ export default function EmployeeView({ section }) {
       {showOnboarding && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 10000,
-          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }} className="fade-in">
           <div style={{
-            background: colors.card, borderRadius: '20px', padding: '40px 48px',
+            background: colors.card, borderRadius: '16px', padding: '40px 48px',
             maxWidth: '480px', width: '90%', textAlign: 'center',
             border: `1px solid ${colors.borderLight}`,
-            boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.5)',
           }}>
             {/* Progress dots */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '28px' }}>
               {[1, 2, 3].map(s => (
                 <div key={s} style={{
                   width: s === onboardingStep ? '24px' : '8px', height: '8px', borderRadius: '4px',
-                  background: s <= onboardingStep ? 'linear-gradient(135deg, #22d3ee, #8b5cf6)' : colors.border,
+                  background: s <= onboardingStep ? colors.gradient : colors.border,
                   transition: 'all 0.3s',
                 }} />
               ))}
@@ -519,7 +622,7 @@ export default function EmployeeView({ section }) {
                   Run the Installer
                 </h2>
                 <p style={{ margin: '0 0 24px', fontSize: '14px', color: colors.textDim, lineHeight: 1.6 }}>
-                  Run the downloaded <span style={{ color: colors.cyan, fontWeight: 600 }}>TeamPulseAgent-Setup.exe</span> — it installs automatically in seconds.
+                  Run the downloaded <span style={{ color: colors.accent, fontWeight: 600 }}>TeamPulseAgent-Setup.exe</span> — it installs automatically in seconds.
                 </p>
                 <div style={{
                   background: colors.bg, borderRadius: '12px', padding: '16px', marginBottom: '24px',
@@ -560,11 +663,11 @@ export default function EmployeeView({ section }) {
                 </p>
                 <div style={{
                   background: colors.bg, borderRadius: '14px', padding: '24px', marginBottom: '8px',
-                  border: `1px solid rgba(34,211,238,0.3)`,
+                  border: `1px solid rgba(59,130,246,0.3)`,
                 }}>
                   <div style={{
                     fontSize: '36px', fontWeight: 800, letterSpacing: '8px', fontFamily: 'monospace',
-                    background: 'linear-gradient(135deg, #22d3ee, #8b5cf6)',
+                    background: colors.gradient,
                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                   }}>
                     {setupCode}

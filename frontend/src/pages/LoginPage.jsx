@@ -26,36 +26,16 @@ export default function LoginPage({ onLogin }) {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: colors.bg, position: 'relative', overflow: 'hidden',
+      background: colors.bg,
     }}>
-      {/* Animated background orbs */}
-      <div className="orb orb-1" />
-      <div className="orb orb-2" />
-      <div className="orb orb-3" />
-
-      {/* Grid pattern overlay */}
-      <div style={{
-        position: 'fixed', inset: 0, opacity: 0.03, pointerEvents: 'none',
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-        backgroundSize: '60px 60px',
-      }} />
-
       <div className="fade-in" style={{
-        width: '440px', maxWidth: '90vw', background: 'rgba(15, 15, 28, 0.85)', borderRadius: '24px',
-        padding: '56px 44px', border: '1px solid rgba(34,211,238,0.15)', position: 'relative',
-        boxShadow: '0 0 120px rgba(34,211,238,0.08), 0 0 60px rgba(139,92,246,0.06), 0 32px 64px rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(20px)',
+        width: '440px', maxWidth: '90vw', background: colors.card, borderRadius: '16px',
+        padding: '56px 44px', border: `1px solid ${colors.border}`, position: 'relative',
+        boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
       }}>
-        {/* Top gradient line */}
-        <div style={{
-          position: 'absolute', top: 0, left: '20%', right: '20%', height: '2px',
-          background: colors.gradient, borderRadius: '0 0 2px 2px',
-        }} />
-
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          {/* Logo — big and prominent */}
-          <div className="logo-pulse" style={{ display: 'inline-block', marginBottom: '16px' }}>
-            <Logo size={140} glow />
+          <div style={{ display: 'inline-block', marginBottom: '16px' }}>
+            <Logo size={100} />
           </div>
           <h1 style={{
             fontSize: '32px', fontWeight: 800, marginBottom: '8px', letterSpacing: '-0.5px',
@@ -70,8 +50,8 @@ export default function LoginPage({ onLogin }) {
 
           {error && (
             <div style={{
-              padding: '10px 14px', borderRadius: '8px', background: '#3b1010',
-              border: '1px solid #5c1a1a', color: '#f87171', fontSize: '13px', marginBottom: '16px',
+              padding: '10px 14px', borderRadius: '8px', background: '#2a0f0f',
+              border: '1px solid #4c1717', color: colors.red, fontSize: '13px', marginBottom: '16px',
             }}>
               {error}
             </div>
@@ -79,8 +59,7 @@ export default function LoginPage({ onLogin }) {
 
           <Btn type="submit" style={{
             width: '100%', padding: '14px', fontSize: '15px', fontWeight: 700,
-            borderRadius: '12px', letterSpacing: '0.3px',
-            boxShadow: '0 4px 24px rgba(34,211,238,0.2), 0 2px 8px rgba(139,92,246,0.15)',
+            borderRadius: '10px', letterSpacing: '0.3px',
           }} disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Btn>

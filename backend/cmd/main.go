@@ -81,6 +81,7 @@ func main() {
 	api.POST("/clock/out", handlers.ClockOut)
 	api.GET("/clock/status", handlers.GetClockStatus)
 	api.GET("/clock/entries", handlers.GetTimeEntries)
+	api.GET("/clock/sessions/me", handlers.GetMyClockSessions)
 
 	// Hours chart (admin sees team, employee sees own)
 	api.GET("/hours/daily", handlers.GetDailyHours)
@@ -133,6 +134,7 @@ func main() {
 	admin.GET("/agent/monitor", handlers.GetAgentMonitor)
 	admin.GET("/agent/app-usage", handlers.GetAppUsage)
 	admin.GET("/aggregations", handlers.GetAggregations)
+	admin.GET("/clock/sessions", handlers.GetClockSessions)
 	admin.GET("/employee/:id/timeline", handlers.GetEmployeeTimeline)
 
 	// WebSocket for live monitoring (admin)

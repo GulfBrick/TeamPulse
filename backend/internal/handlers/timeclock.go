@@ -138,6 +138,98 @@ func RecordActivityPing(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "recorded"})
 }
 
+// ─── Clock Sessions ──────────────────────────────────────────
+
+// GetClockSessions — Admin: returns time entries enriched with segment stats
+func GetClockSessions(c echo.Context) error {
+	date := c.QueryParam("date")
+	if date == "" {
+		date = todayStr()
+	}
+
+	var entries []models.TimeEntry
+	database.DB.Preload("User").Where("date = ?", date).Order("clock_in desc").Find(&entries)
+
+	sessions := make([]models.ClockSessionResponse, 0, len(entries))
+	for _, entry := range entries {
+		sess := buildSessionResponse(entry)
+		sessions = append(sessions, sess)
+	}
+
+	return c.JSON(http.StatusOK, sessions)
+}
+
+// GetMyClockSessions — Employee: returns own time entries enriched with segment stats
+func GetMyClockSessions(c echo.Context) error {
+	userID := mw.GetUserID(c)
+	date := c.QueryParam("date")
+	if date == "" {
+		date = todayStr()
+	}
+
+	var entries []models.TimeEntry
+	database.DB.Preload("User").Where("user_id = ? AND date = ?", userID, date).Order("clock_in desc").Find(&entries)
+
+	sessions := make([]models.ClockSessionResponse, 0, len(entries))
+	for _, entry := range entries {
+		sess := buildSessionResponse(entry)
+		sessions = append(sessions, sess)
+	}
+
+	return c.JSON(http.StatusOK, sessions)
+}
+
+func buildSessionResponse(entry models.TimeEntry) models.ClockSessionResponse {
+	clockOut := time.Now()
+	if entry.ClockOut != nil {
+		clockOut = *entry.ClockOut
+	}
+
+	// Aggregate active/idle seconds from segments within this session window
+	type Sums struct {
+		ActiveSeconds int
+		IdleSeconds   int
+		MouseClicks   int
+		Keystrokes    int
+	}
+	var sums Sums
+	database.DB.Model(&models.ActivitySegment{}).
+		Select(`COALESCE(SUM(CASE WHEN segment_type='active' THEN duration ELSE 0 END),0) as active_seconds,
+		        COALESCE(SUM(CASE WHEN segment_type='idle' THEN duration ELSE 0 END),0) as idle_seconds,
+		        COALESCE(SUM(mouse_clicks),0) as mouse_clicks,
+		        COALESCE(SUM(keystrokes),0) as keystrokes`).
+		Where("user_id = ? AND start_time >= ? AND end_time <= ?", entry.UserID, entry.ClockIn, clockOut).
+		Scan(&sums)
+
+	// Top apps for this session
+	var topApps []models.AppDur
+	database.DB.Model(&models.ActivitySegment{}).
+		Select("app_name, SUM(duration) as duration").
+		Where("user_id = ? AND start_time >= ? AND end_time <= ? AND app_name != '' AND segment_type = 'active'",
+			entry.UserID, entry.ClockIn, clockOut).
+		Group("app_name").
+		Order("duration desc").
+		Limit(5).
+		Find(&topApps)
+
+	// Raw segments for timeline
+	var segments []models.ActivitySegment
+	database.DB.Where("user_id = ? AND start_time >= ? AND end_time <= ?",
+		entry.UserID, entry.ClockIn, clockOut).
+		Order("start_time asc").
+		Find(&segments)
+
+	return models.ClockSessionResponse{
+		TimeEntry:          entry,
+		TotalActiveSeconds: sums.ActiveSeconds,
+		TotalIdleSeconds:   sums.IdleSeconds,
+		TotalMouseClicks:   sums.MouseClicks,
+		TotalKeystrokes:    sums.Keystrokes,
+		TopApps:            topApps,
+		Segments:           segments,
+	}
+}
+
 // GetActivityStats - admin endpoint to view activity percentages
 func GetActivityStats(c echo.Context) error {
 	date := c.QueryParam("date")

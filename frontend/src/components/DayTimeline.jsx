@@ -6,10 +6,10 @@ const HOUR_END = 22; // 10 PM
 const TOTAL_HOURS = HOUR_END - HOUR_START;
 
 const segmentColors = {
-  active: '#34d399',
-  idle: '#fbbf24',
+  active: '#22c55e',
+  idle: '#eab308',
   app_usage: '#3b82f6',
-  offline: '#1a1a2e',
+  offline: '#23252f',
 };
 
 /**

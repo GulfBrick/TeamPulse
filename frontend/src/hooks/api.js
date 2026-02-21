@@ -75,6 +75,8 @@ class ApiClient {
   clockOut() { return this.request('POST', '/clock/out'); }
   getClockStatus() { return this.request('GET', '/clock/status'); }
   getTimeEntries(date) { return this.request('GET', `/clock/entries${date ? `?date=${date}` : ''}`); }
+  getClockSessions(date) { return this.request('GET', `/clock/sessions${date ? `?date=${date}` : ''}`); }
+  getMyClockSessions(date) { return this.request('GET', `/clock/sessions/me${date ? `?date=${date}` : ''}`); }
 
   // Activity
   sendPing(isActive, idleSeconds = 0, events = {}) {
