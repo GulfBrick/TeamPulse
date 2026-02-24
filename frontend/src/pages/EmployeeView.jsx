@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../hooks/api';
 import { useActivityTracker } from '../hooks/useActivityTracker';
-import { useActivityCheck } from '../hooks/useActivityCheck';
-import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, ActivityCheckModal, formatTime, formatDate, todayStr, colors } from '../components/UI';
+// import { useActivityCheck } from '../hooks/useActivityCheck'; // Disabled
+import { Card, Badge, Btn, Input, Modal, EmptyState, StatCard, formatTime, formatDate, todayStr, colors } from '../components/UI';
 import DayTimeline from '../components/DayTimeline';
 
 export default function EmployeeView({ section }) {
@@ -32,8 +32,8 @@ export default function EmployeeView({ section }) {
   // Activity tracking
   useActivityTracker(clockStatus.clocked_in);
 
-  // Activity check (random popup)
-  const { showCheck, countdown, confirmPresence, wasAutoClocked, dismissAutoClockMessage } = useActivityCheck(clockStatus.clocked_in);
+  // Activity check disabled
+  // const { showCheck, countdown, confirmPresence, wasAutoClocked, dismissAutoClockMessage } = useActivityCheck(clockStatus.clocked_in);
 
   // Load data
   const refresh = useCallback(async () => {
@@ -539,29 +539,8 @@ export default function EmployeeView({ section }) {
         </Modal>
       )}
 
-      {/* ─── Activity Check Modal ──────────────────────── */}
-      {showCheck && (
-        <ActivityCheckModal countdown={countdown} onConfirm={confirmPresence} />
-      )}
-
-      {/* ─── Auto Clock-Out Notification ───────────────── */}
-      {wasAutoClocked && (
-        <div style={{
-          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
-          background: colors.card, border: `1px solid ${colors.red}`, borderRadius: '12px',
-          padding: '16px 24px', display: 'flex', alignItems: 'center', gap: '12px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 9000,
-        }} className="fade-in">
-          <span style={{ fontSize: '20px' }}>⏹</span>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: colors.red }}>Auto Clocked Out</div>
-            <div style={{ fontSize: '12px', color: colors.textDim }}>You were clocked out due to inactivity.</div>
-          </div>
-          <button onClick={dismissAutoClockMessage} style={{
-            background: 'none', border: 'none', color: colors.textDim, cursor: 'pointer', fontSize: '16px', marginLeft: '8px',
-          }}>✕</button>
-        </div>
-      )}
+      {/* ─── Activity Check Modal (Disabled) ──────────────────────── */}
+      {/* Activity check popup removed */}
 
       {/* ─── Agent Onboarding Overlay ──────────────────── */}
       {showOnboarding && (
