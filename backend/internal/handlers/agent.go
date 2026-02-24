@@ -50,6 +50,36 @@ func GenerateSetupToken(c echo.Context) error {
 	})
 }
 
+// AdminGenerateSetupToken creates a 6-char setup code for a specific employee (admin only).
+func AdminGenerateSetupToken(c echo.Context) error {
+	employeeID := c.Param("id")
+
+	// Verify the employee exists
+	var user models.User
+	if err := database.DB.First(&user, employeeID).Error; err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "employee not found"})
+	}
+
+	// Invalidate any existing unused tokens for this user
+	database.DB.Model(&models.AgentSetupToken{}).
+		Where("user_id = ? AND used = false", user.ID).
+		Update("used", true)
+
+	token := models.AgentSetupToken{
+		UserID:    user.ID,
+		Code:      generateCode(),
+		ExpiresAt: time.Now().Add(15 * time.Minute),
+	}
+	database.DB.Create(&token)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"code":         token.Code,
+		"expires_at":   token.ExpiresAt,
+		"employee_id":  user.ID,
+		"employee_name": user.Name,
+	})
+}
+
 // ExchangeSetupCode is a PUBLIC endpoint (no JWT required).
 // The desktop agent sends the 6-char code and receives a JWT in return.
 func ExchangeSetupCode(c echo.Context) error {

@@ -129,6 +129,7 @@ func main() {
 	admin.GET("/employees", handlers.ListEmployees)
 	admin.PUT("/employees/:id", handlers.UpdateEmployee)
 	admin.DELETE("/employees/:id", handlers.DeactivateEmployee)
+	admin.POST("/employees/:id/setup-code", handlers.AdminGenerateSetupToken)
 	admin.GET("/dashboard", handlers.GetDashboard)
 	admin.GET("/activity/stats", handlers.GetActivityStats)
 	admin.GET("/agent/monitor", handlers.GetAgentMonitor)
