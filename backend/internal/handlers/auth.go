@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 
 	"teampulse/internal/database"
 	"teampulse/internal/email"
@@ -27,8 +28,11 @@ func Login(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email format"})
 	}
 
+	// Normalize email to lowercase for case-insensitive matching
+	normalizedEmail := strings.ToLower(strings.TrimSpace(req.Email))
+
 	var user models.User
-	if err := database.DB.Where("email = ? AND is_active = true", req.Email).First(&user).Error; err != nil {
+	if err := database.DB.Where("LOWER(email) = ? AND is_active = true", normalizedEmail).First(&user).Error; err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid credentials"})
 	}
 
