@@ -291,11 +291,11 @@ func GetAppUsage(c echo.Context) error {
 		Find(&results)
 
 	// Get employee names
-	var employees []models.Employee
-	database.DB.Find(&employees)
+	var users []models.User
+	database.DB.Find(&users)
 	employeeNames := make(map[uint]string)
-	for _, e := range employees {
-		employeeNames[e.ID] = e.Name
+	for _, u := range users {
+		employeeNames[u.ID] = u.Name
 	}
 
 	// Group results by user
