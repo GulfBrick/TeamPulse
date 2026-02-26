@@ -28,6 +28,8 @@ export default function EmployeeView({ section }) {
   const [onboardingStep, setOnboardingStep] = useState(1);
   const [setupCode, setSetupCode] = useState('');
   const [setupLoading, setSetupLoading] = useState(false);
+  const [agentVersion, setAgentVersion] = useState(null);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // Activity tracking
   useActivityTracker(clockStatus.clocked_in);
@@ -85,6 +87,28 @@ export default function EmployeeView({ section }) {
       }
     });
   }, []);
+
+  // Check for agent updates
+  useEffect(() => {
+    api.getAgentVersion().then(data => {
+      setAgentVersion(data);
+      // Check local storage for last dismissed version
+      const dismissedVersion = localStorage.getItem('tp_dismissed_agent_version');
+      if (data.version && dismissedVersion !== data.version) {
+        // Show update banner if user has completed setup (agent might be outdated)
+        if (api.user?.agent_setup_done) {
+          setShowUpdateBanner(true);
+        }
+      }
+    }).catch(() => {});
+  }, []);
+
+  const dismissUpdateBanner = () => {
+    if (agentVersion?.version) {
+      localStorage.setItem('tp_dismissed_agent_version', agentVersion.version);
+    }
+    setShowUpdateBanner(false);
+  };
 
   const startAgentDownload = async () => {
     setOnboardingStep(2);
@@ -174,6 +198,67 @@ export default function EmployeeView({ section }) {
 
   return (
     <div>
+      {/* ─── Update Notification Banner ───────────────────── */}
+      {showUpdateBanner && agentVersion && (
+        <div style={{
+          background: 'linear-gradient(90deg, rgba(59,130,246,0.15), rgba(139,92,246,0.15))',
+          border: '1px solid rgba(59,130,246,0.3)',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '28px' }}>🚀</span>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: colors.text, marginBottom: '2px' }}>
+                Desktop Agent Update Available!
+              </div>
+              <div style={{ fontSize: '12px', color: colors.textDim }}>
+                Version {agentVersion.version} is ready. Download now for improved activity tracking.
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <a
+              href="/api/agent/download"
+              download="TeamPulseAgent-Setup.exe"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 20px',
+                background: colors.accent,
+                color: '#fff',
+                borderRadius: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              ⬇ Download v{agentVersion.version}
+            </a>
+            <button
+              onClick={dismissUpdateBanner}
+              style={{
+                background: 'transparent',
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: '8px',
+                padding: '10px 14px',
+                color: colors.textDim,
+                fontSize: '13px',
+                cursor: 'pointer',
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ─── Time Clock ──────────────────────────────────── */}
       {tab === 'clock' && (
         <div>
@@ -235,9 +320,34 @@ export default function EmployeeView({ section }) {
             </Card>
           )}
 
-          <Btn variant="secondary" onClick={() => setShowStandup(true)} style={{ marginBottom: '16px' }}>
-            📝 Daily Feedback
-          </Btn>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+            <Btn variant="secondary" onClick={() => setShowStandup(true)}>
+              📝 Daily Feedback
+            </Btn>
+            <a
+              href="/api/agent/download"
+              download="TeamPulseAgent-Setup.exe"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 18px',
+                background: 'transparent',
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: '8px',
+                color: colors.textMuted,
+                fontSize: '14px',
+                fontWeight: 500,
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={e => { e.target.style.borderColor = colors.accent; e.target.style.color = colors.accent; }}
+              onMouseOut={e => { e.target.style.borderColor = colors.borderLight; e.target.style.color = colors.textMuted; }}
+            >
+              ⬇ Download Agent
+            </a>
+          </div>
 
           {/* Hours Chart */}
           <Card style={{ marginTop: '8px' }}>

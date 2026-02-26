@@ -69,6 +69,7 @@ func main() {
 	e.POST("/api/auth/login", handlers.Login, loginRateLimiter)
 	e.POST("/api/agent/auth-code", handlers.ExchangeSetupCode) // desktop agent exchanges setup code for JWT
 	e.GET("/api/agent/download", handlers.DownloadAgent)        // public so <a> tags work without JWT
+	e.GET("/api/agent/version", handlers.GetAgentVersion)       // public: get current agent version
 
 	// ─── Authenticated Routes ─────────────────────────────────
 	api := e.Group("/api", mw.JWTMiddleware)

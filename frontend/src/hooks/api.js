@@ -122,6 +122,7 @@ class ApiClient {
   getAgentStatus() { return this.request('GET', '/agent/status'); }
   generateSetupToken() { return this.request('POST', '/agent/setup-token'); }
   skipAgentSetup() { return this.request('POST', '/agent/skip-setup'); }
+  getAgentVersion() { return fetch('/api/agent/version').then(r => r.json()); }
 
   // Agent setup (admin - generate for specific employee)
   adminGenerateSetupToken(employeeId) { return this.request('POST', `/employees/${employeeId}/setup-code`); }

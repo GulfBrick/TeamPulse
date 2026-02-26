@@ -133,6 +133,20 @@ func SkipAgentSetup(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"status": "skipped"})
 }
 
+// GetAgentVersion returns the current server-side agent version and download info.
+func GetAgentVersion(c echo.Context) error {
+	// Current agent version - update this when you rebuild the agent
+	currentVersion := os.Getenv("AGENT_VERSION")
+	if currentVersion == "" {
+		currentVersion = "1.2.0"
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"version":     currentVersion,
+		"download_url": "/api/agent/download",
+	})
+}
+
 // DownloadAgent serves the pre-built agent zip.
 // If AGENT_DOWNLOAD_URL env var is set, it redirects there instead (for cloud deploys where local file isn't available).
 func DownloadAgent(c echo.Context) error {
