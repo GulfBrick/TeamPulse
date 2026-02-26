@@ -156,10 +156,10 @@ export default function EmployeeView({ section }) {
     return () => clearInterval(i);
   }, [activeTimer]);
 
-  // Refresh when auto-clocked out by activity check
-  useEffect(() => {
-    if (wasAutoClocked) refresh();
-  }, [wasAutoClocked, refresh]);
+  // Refresh when auto-clocked out by activity check (disabled)
+  // useEffect(() => {
+  //   if (wasAutoClocked) refresh();
+  // }, [wasAutoClocked, refresh]);
 
   const handleClock = async () => {
     if (clockStatus.clocked_in) {
