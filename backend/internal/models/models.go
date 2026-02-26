@@ -250,6 +250,12 @@ type AppUsageEntry struct {
 	Minutes float64 `json:"minutes"`
 }
 
+type UserAppUsage struct {
+	UserID   uint            `json:"user_id"`
+	UserName string          `json:"user_name"`
+	Apps     []AppUsageEntry `json:"apps"`
+}
+
 // ─── Activity Segments (v2) ──────────────────────────────────
 
 // ActivitySegment replaces raw heartbeat pings with proper time blocks

@@ -73,9 +73,9 @@ func AdminGenerateSetupToken(c echo.Context) error {
 	database.DB.Create(&token)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"code":         token.Code,
-		"expires_at":   token.ExpiresAt,
-		"employee_id":  user.ID,
+		"code":          token.Code,
+		"expires_at":    token.ExpiresAt,
+		"employee_id":   user.ID,
 		"employee_name": user.Name,
 	})
 }
@@ -142,7 +142,7 @@ func GetAgentVersion(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"version":     currentVersion,
+		"version":      currentVersion,
 		"download_url": "/api/agent/download",
 	})
 }
@@ -271,30 +271,53 @@ func GetAgentMonitor(c echo.Context) error {
 	return c.JSON(http.StatusOK, entries)
 }
 
-// GetAppUsage returns app usage breakdown for today.
+// GetAppUsage returns app usage breakdown for today, grouped by user.
 func GetAppUsage(c echo.Context) error {
 	today := todayStr()
 	startOfDay, _ := time.Parse("2006-01-02", today)
 	endOfDay := startOfDay.Add(24 * time.Hour)
 
-	type AppCount struct {
+	type UserAppCount struct {
+		UserID    uint
 		ActiveApp string
 		Count     int64
 	}
-	var results []AppCount
+	var results []UserAppCount
 	database.DB.Model(&models.AgentHeartbeat{}).
-		Select("active_app, COUNT(*) as count").
+		Select("user_id, active_app, COUNT(*) as count").
 		Where("timestamp >= ? AND timestamp < ? AND active_app != ''", startOfDay, endOfDay).
-		Group("active_app").
-		Order("count desc").
-		Limit(20).
+		Group("user_id, active_app").
+		Order("user_id, count desc").
 		Find(&results)
 
-	var usage []models.AppUsageEntry
+	// Get employee names
+	var employees []models.Employee
+	database.DB.Find(&employees)
+	employeeNames := make(map[uint]string)
+	for _, e := range employees {
+		employeeNames[e.ID] = e.Name
+	}
+
+	// Group results by user
+	userAppsMap := make(map[uint][]models.AppUsageEntry)
 	for _, r := range results {
-		usage = append(usage, models.AppUsageEntry{
+		userAppsMap[r.UserID] = append(userAppsMap[r.UserID], models.AppUsageEntry{
 			App:     r.ActiveApp,
 			Minutes: float64(r.Count) * 5.0 / 60.0,
+		})
+	}
+
+	// Build response
+	var usage []models.UserAppUsage
+	for userID, apps := range userAppsMap {
+		// Limit to top 10 apps per user
+		if len(apps) > 10 {
+			apps = apps[:10]
+		}
+		usage = append(usage, models.UserAppUsage{
+			UserID:   userID,
+			UserName: employeeNames[userID],
+			Apps:     apps,
 		})
 	}
 

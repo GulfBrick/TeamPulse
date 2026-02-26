@@ -436,28 +436,42 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
             </Card>
           )}
 
-          {/* ── Top Apps (Team) ── */}
+          {/* ── Top Apps (Per User) ── */}
           {(appUsage || []).length > 0 && (
             <Card style={{ marginTop: '24px' }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>Top Apps (Team)</h3>
-              {appUsage.slice(0, 10).map((a, i) => {
-                const maxMin = appUsage[0]?.minutes || 1;
-                const pct = (a.minutes / maxMin) * 100;
-                return (
-                  <div key={i} style={{ marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                      <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{a.app}</span>
-                      <span style={{ fontSize: '12px', color: colors.textDim }}>{a.minutes < 1 ? '<1 min' : `${Math.round(a.minutes)} min`}</span>
-                    </div>
-                    <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${pct}%`, height: '100%', borderRadius: '4px',
-                        background: colors.accent, transition: 'width 0.3s',
-                      }} />
-                    </div>
+              <h3 style={{ margin: '0 0 16px', fontSize: '16px', color: colors.text, fontWeight: 700 }}>Top Apps by Employee</h3>
+              {appUsage.slice(0, 5).map((user, ui) => (
+                <div key={ui} style={{ marginBottom: ui < Math.min(appUsage.length, 5) - 1 ? '16px' : 0 }}>
+                  <div style={{ 
+                    fontSize: '13px', 
+                    fontWeight: 600, 
+                    color: colors.accent, 
+                    marginBottom: '6px',
+                    paddingBottom: '4px',
+                    borderBottom: `1px solid ${colors.border}`
+                  }}>
+                    {user.user_name || `User ${user.user_id}`}
                   </div>
-                );
-              })}
+                  {(user.apps || []).slice(0, 3).map((a, i) => {
+                    const maxMin = user.apps[0]?.minutes || 1;
+                    const pct = (a.minutes / maxMin) * 100;
+                    return (
+                      <div key={i} style={{ marginBottom: '6px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                          <span style={{ fontSize: '12px', color: colors.text }}>{a.app}</span>
+                          <span style={{ fontSize: '11px', color: colors.textDim }}>{a.minutes < 1 ? '<1 min' : `${Math.round(a.minutes)} min`}</span>
+                        </div>
+                        <div style={{ background: colors.bg, borderRadius: '3px', height: '4px', overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${pct}%`, height: '100%', borderRadius: '3px',
+                            background: colors.accent, transition: 'width 0.3s',
+                          }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </Card>
           )}
         </div>
@@ -968,29 +982,43 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                 </Card>
               )}
 
-              {/* App Usage Breakdown */}
+              {/* App Usage Breakdown - Per User */}
               {(appUsage || []).length > 0 && (
                 <Card>
-                  <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>App Usage (Today)</h3>
-                  {appUsage.map((a, i) => {
-                    const maxMin = appUsage[0]?.minutes || 1;
-                    const pct = (a.minutes / maxMin) * 100;
-                    return (
-                      <div key={i} style={{ marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '13px', color: colors.text, fontWeight: 500 }}>{a.app}</span>
-                          <span style={{ fontSize: '12px', color: colors.textDim }}>{a.minutes < 1 ? '<1 min' : `${Math.round(a.minutes)} min`}</span>
-                        </div>
-                        <div style={{ background: colors.bg, borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
-                          <div style={{
-                            width: `${pct}%`, height: '100%', borderRadius: '4px',
-                            background: colors.accent,
-                            transition: 'width 0.3s',
-                          }} />
-                        </div>
+                  <h3 style={{ margin: '0 0 16px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>App Usage by Employee (Today)</h3>
+                  {appUsage.map((user, ui) => (
+                    <div key={ui} style={{ marginBottom: ui < appUsage.length - 1 ? '20px' : 0 }}>
+                      <div style={{ 
+                        fontSize: '13px', 
+                        fontWeight: 600, 
+                        color: colors.accent, 
+                        marginBottom: '8px',
+                        paddingBottom: '6px',
+                        borderBottom: `1px solid ${colors.border}`
+                      }}>
+                        {user.user_name || `User ${user.user_id}`}
                       </div>
-                    );
-                  })}
+                      {(user.apps || []).slice(0, 5).map((a, i) => {
+                        const maxMin = user.apps[0]?.minutes || 1;
+                        const pct = (a.minutes / maxMin) * 100;
+                        return (
+                          <div key={i} style={{ marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                              <span style={{ fontSize: '12px', color: colors.text }}>{a.app}</span>
+                              <span style={{ fontSize: '11px', color: colors.textDim }}>{a.minutes < 1 ? '<1 min' : `${Math.round(a.minutes)} min`}</span>
+                            </div>
+                            <div style={{ background: colors.bg, borderRadius: '3px', height: '4px', overflow: 'hidden' }}>
+                              <div style={{
+                                width: `${pct}%`, height: '100%', borderRadius: '3px',
+                                background: colors.accent,
+                                transition: 'width 0.3s',
+                              }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </Card>
               )}
 
