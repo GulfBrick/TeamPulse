@@ -34,6 +34,8 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddKPI, setShowAddKPI] = useState(false);
+  const [showSetupCode, setShowSetupCode] = useState(false);
+  const [setupCodeData, setSetupCodeData] = useState(null);
   const [empForm, setEmpForm] = useState({ name: '', email: '', password: '', title: '', role: 'employee' });
   const [taskForm, setTaskForm] = useState({ title: '', description: '', assignee_id: null, priority: 'medium', due_date: '' });
   const [kpiForm, setKpiForm] = useState({ user_id: null, metric: '', target: 0, current: 0, unit: '' });
@@ -152,6 +154,16 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
     setKpiForm({ user_id: null, metric: '', target: 0, current: 0, unit: '' });
     setShowAddKPI(false);
     refresh();
+  };
+
+  const generateSetupCode = async (emp) => {
+    try {
+      const result = await api.adminGenerateSetupToken(emp.id);
+      setSetupCodeData({ ...result, employee_name: emp.name, employee_email: emp.email });
+      setShowSetupCode(true);
+    } catch (err) {
+      alert(err.message || 'Failed to generate setup code');
+    }
   };
 
   const cycleTask = async (task) => {
@@ -469,6 +481,9 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                     <div style={{ fontSize: '12px', color: colors.textDim }}>{emp.email} · {emp.title || 'No title'}</div>
                   </div>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <Btn variant="secondary" onClick={() => generateSetupCode(emp)} style={{ padding: '8px 12px', fontSize: '12px' }}>
+                      🔑 Setup Key
+                    </Btn>
                     <Btn variant="secondary" onClick={() => { if (confirm('Deactivate this employee?')) { api.deleteEmployee(emp.id).then(refresh); } }} style={{ padding: '8px 12px', fontSize: '12px' }}>
                       Deactivate
                     </Btn>
@@ -1045,6 +1060,40 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <Btn variant="secondary" onClick={() => setShowAddKPI(false)}>Cancel</Btn>
             <Btn onClick={addKPI}>Add KPI</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {showSetupCode && setupCodeData && (
+        <Modal title="Desktop Agent Setup Key" onClose={() => { setShowSetupCode(false); setSetupCodeData(null); }}>
+          <div style={{ textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ fontSize: '13px', color: colors.textDim, marginBottom: '8px' }}>
+              Setup key for <strong style={{ color: colors.text }}>{setupCodeData.employee_name}</strong>
+            </div>
+            <div style={{ fontSize: '11px', color: colors.textDimmer, marginBottom: '20px' }}>
+              {setupCodeData.employee_email}
+            </div>
+            <div style={{
+              fontSize: '36px', fontWeight: 800, fontFamily: 'monospace', letterSpacing: '8px',
+              color: colors.accent, background: colors.bgRaised, padding: '20px 32px',
+              borderRadius: '12px', border: `2px dashed ${colors.borderLight}`, marginBottom: '16px',
+              userSelect: 'all', cursor: 'pointer',
+            }} onClick={() => { navigator.clipboard.writeText(setupCodeData.code); }}>
+              {setupCodeData.code}
+            </div>
+            <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '12px' }}>
+              Click the code to copy
+            </div>
+            <div style={{
+              fontSize: '11px', color: colors.yellow, background: 'rgba(234,179,8,0.1)',
+              padding: '10px 16px', borderRadius: '8px', border: '1px solid rgba(234,179,8,0.2)',
+            }}>
+              ⏱ Expires in 15 minutes ({new Date(setupCodeData.expires_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '16px' }}>
+            <Btn variant="secondary" onClick={() => { navigator.clipboard.writeText(setupCodeData.code); }}>Copy Code</Btn>
+            <Btn onClick={() => { setShowSetupCode(false); setSetupCodeData(null); }}>Done</Btn>
           </div>
         </Modal>
       )}

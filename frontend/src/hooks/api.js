@@ -123,6 +123,9 @@ class ApiClient {
   generateSetupToken() { return this.request('POST', '/agent/setup-token'); }
   skipAgentSetup() { return this.request('POST', '/agent/skip-setup'); }
 
+  // Agent setup (admin - generate for specific employee)
+  adminGenerateSetupToken(employeeId) { return this.request('POST', `/employees/${employeeId}/setup-code`); }
+
   // Hours chart (admin sees team totals, employee sees own)
   getDailyHours(days = 7) { return this.request('GET', `/hours/daily?days=${days}`); }
 
