@@ -128,8 +128,8 @@ async function login(email, password) {
   return result;
 }
 
-function logout() {
-  stopTracking();
+async function logout() {
+  await stopTracking();
   store.delete('token');
   store.delete('user');
   isClockedIn = false;
@@ -214,12 +214,26 @@ function startTracking() {
   showNotification('Tracking Started', 'TeamPulse is now monitoring your activity.');
 }
 
-function stopTracking() {
+async function stopTracking() {
   // Flush remaining segments before stopping
   if (segmentEngine && localQueue) {
     const remaining = segmentEngine.stop();
     if (remaining.length > 0) {
       localQueue.enqueue(remaining);
+    }
+
+    // Final send — push all queued segments to the server before stopping
+    try {
+      const batch = localQueue.dequeue(200);
+      if (batch.length > 0) {
+        const segments = batch.map(b => b.segment);
+        const ids = batch.map(b => b.id);
+        await apiClient.sendSegments(segments);
+        localQueue.markSent(ids);
+        console.log(`Final send: delivered ${segments.length} segments on clock-out`);
+      }
+    } catch (err) {
+      console.error('Final segment send failed (will retry on next clock-in):', err.message);
     }
   }
 
@@ -243,7 +257,7 @@ function startClockCheck() {
       if (isClockedIn && !wasClockedIn) {
         startTracking();
       } else if (!isClockedIn && wasClockedIn) {
-        stopTracking();
+        await stopTracking();
         showNotification('Tracking Paused', 'You are no longer clocked in.');
       }
 
@@ -346,8 +360,8 @@ app.on('window-all-closed', (e) => {
   e?.preventDefault?.();
 });
 
-app.on('before-quit', () => {
-  stopTracking();
+app.on('before-quit', async () => {
+  await stopTracking();
   stopUpdateChecks();
   if (localQueue) { localQueue.close(); localQueue = null; }
 });

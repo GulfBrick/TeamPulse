@@ -30,6 +30,10 @@ export default function EmployeeView({ section }) {
   const [setupLoading, setSetupLoading] = useState(false);
   const [agentVersion, setAgentVersion] = useState(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+  const [showSetupKeyModal, setShowSetupKeyModal] = useState(false);
+  const [selfSetupCode, setSelfSetupCode] = useState('');
+  const [selfSetupLoading, setSelfSetupLoading] = useState(false);
+  const [selfSetupExpiry, setSelfSetupExpiry] = useState(null);
 
   // Activity tracking
   useActivityTracker(clockStatus.clocked_in);
@@ -130,6 +134,19 @@ export default function EmployeeView({ section }) {
       console.error(err);
     }
     setSetupLoading(false);
+  };
+
+  const generateSelfSetupKey = async () => {
+    setSelfSetupLoading(true);
+    try {
+      const result = await api.generateSetupToken();
+      setSelfSetupCode(result.code);
+      setSelfSetupExpiry(result.expires_at);
+      setShowSetupKeyModal(true);
+    } catch (err) {
+      console.error(err);
+    }
+    setSelfSetupLoading(false);
   };
 
   const finishOnboarding = async () => {
@@ -320,9 +337,12 @@ export default function EmployeeView({ section }) {
             </Card>
           )}
 
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <Btn variant="secondary" onClick={() => setShowStandup(true)}>
               📝 Daily Feedback
+            </Btn>
+            <Btn variant="secondary" onClick={generateSelfSetupKey} disabled={selfSetupLoading}>
+              {selfSetupLoading ? '⏳ Generating...' : '🔑 Setup Key'}
             </Btn>
             <a
               href="/api/agent/download"
@@ -651,6 +671,37 @@ export default function EmployeeView({ section }) {
 
       {/* ─── Activity Check Modal (Disabled) ──────────────────────── */}
       {/* Activity check popup removed */}
+
+      {/* ─── Setup Key Modal ─────────────────────────────── */}
+      {showSetupKeyModal && (
+        <Modal title="Your Agent Setup Key" onClose={() => setShowSetupKeyModal(false)}>
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <p style={{ fontSize: '13px', color: colors.textDim, marginBottom: '20px' }}>
+              Paste this code into the TeamPulse Desktop Agent to pair it with your account.
+            </p>
+            <div style={{
+              fontSize: '36px', fontWeight: 800, letterSpacing: '8px', fontFamily: 'monospace',
+              color: colors.accent, padding: '20px', background: colors.bg, borderRadius: '12px',
+              border: `1px solid ${colors.borderLight}`, marginBottom: '16px', userSelect: 'all',
+            }}>
+              {selfSetupCode}
+            </div>
+            {selfSetupExpiry && (
+              <p style={{ fontSize: '12px', color: colors.textDimmer, margin: '0 0 16px' }}>
+                Expires in 15 minutes ({new Date(selfSetupExpiry).toLocaleTimeString()})
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <Btn variant="secondary" onClick={() => {
+                navigator.clipboard.writeText(selfSetupCode).catch(() => {});
+              }}>
+                📋 Copy Code
+              </Btn>
+              <Btn variant="secondary" onClick={() => setShowSetupKeyModal(false)}>Close</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* ─── Agent Onboarding Overlay ──────────────────── */}
       {showOnboarding && (

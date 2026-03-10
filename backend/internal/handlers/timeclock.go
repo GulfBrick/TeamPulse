@@ -60,6 +60,9 @@ func ClockOut(c echo.Context) error {
 			"duration_seconds": 0, // will recalculate
 		})
 
+	// Finalize daily aggregation so the day's data is fully saved
+	UpdateDailyAggregation(userID, entry.Date)
+
 	return c.JSON(http.StatusOK, entry)
 }
 

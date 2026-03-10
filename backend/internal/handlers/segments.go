@@ -94,7 +94,7 @@ func ReceiveSegments(c echo.Context) error {
 
 	// Update daily aggregations for affected dates
 	for date := range affectedDates {
-		updateDailyAggregation(userID, date)
+		UpdateDailyAggregation(userID, date)
 	}
 
 	// Broadcast to WebSocket clients
@@ -108,8 +108,8 @@ func ReceiveSegments(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{"status": "ok", "received": saved})
 }
 
-// updateDailyAggregation recalculates the daily aggregation for a user+date
-func updateDailyAggregation(userID uint, date string) {
+// UpdateDailyAggregation recalculates the daily aggregation for a user+date (exported for clock-out)
+func UpdateDailyAggregation(userID uint, date string) {
 	type Sums struct {
 		TotalActive  int
 		TotalIdle    int
@@ -147,6 +147,25 @@ func updateDailyAggregation(userID uint, date string) {
 
 	topAppsJSON, _ := json.Marshal(topApps)
 
+	// Calculate total hours clocked from time entries for this day
+	var entries []models.TimeEntry
+	database.DB.Where("user_id = ? AND date = ?", userID, date).Find(&entries)
+	var totalClockSeconds float64
+	for _, e := range entries {
+		if e.ClockOut != nil {
+			totalClockSeconds += float64(e.Duration)
+		} else {
+			totalClockSeconds += time.Since(e.ClockIn).Seconds()
+		}
+	}
+	totalHoursClocked := totalClockSeconds / 3600.0
+
+	// Count tasks completed on this date
+	var tasksCompleted int64
+	database.DB.Model(&models.Task{}).
+		Where("assignee_id = ? AND status = ? AND DATE(completed_at) = ?", userID, models.TaskComplete, date).
+		Count(&tasksCompleted)
+
 	agg := models.DailyAggregation{}
 	result := database.DB.Where("user_id = ? AND date = ?", userID, date).First(&agg)
 
@@ -154,6 +173,8 @@ func updateDailyAggregation(userID uint, date string) {
 	agg.Date = date
 	agg.TotalActiveSeconds = activeSums.TotalActive
 	agg.TotalIdleSeconds = idleSums.TotalIdle
+	agg.TotalHoursClocked = totalHoursClocked
+	agg.TasksCompleted = int(tasksCompleted)
 	agg.TotalMouseMoves = activeSums.MouseMoves
 	agg.TotalMouseClicks = activeSums.MouseClicks
 	agg.TotalKeystrokes = activeSums.Keystrokes

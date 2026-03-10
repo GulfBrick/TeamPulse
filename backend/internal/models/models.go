@@ -285,6 +285,8 @@ type DailyAggregation struct {
 	Date               string    `gorm:"not null;uniqueIndex:idx_user_date;size:10" json:"date"`
 	TotalActiveSeconds int       `json:"total_active_seconds"`
 	TotalIdleSeconds   int       `json:"total_idle_seconds"`
+	TotalHoursClocked  float64   `json:"total_hours_clocked"`
+	TasksCompleted     int       `json:"tasks_completed"`
 	TotalMouseMoves    int       `json:"total_mouse_moves"`
 	TotalMouseClicks   int       `json:"total_mouse_clicks"`
 	TotalKeystrokes    int       `json:"total_keystrokes"`
