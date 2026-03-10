@@ -138,6 +138,15 @@ class ApiClient {
   getAggregations(date) { return this.request('GET', `/aggregations${date ? `?date=${date}` : ''}`); }
   getEmployeeTimeline(id, date) { return this.request('GET', `/employee/${id}/timeline${date ? `?date=${date}` : ''}`); }
 
+  // Leave
+  applyLeave(data) { return this.request('POST', '/leave', data); }
+  getMyLeave() { return this.request('GET', '/leave/me'); }
+  getLeaveBalance() { return this.request('GET', '/leave/balance'); }
+  cancelLeave(id) { return this.request('DELETE', `/leave/${id}`); }
+  listAllLeave(status) { return this.request('GET', `/leave${status ? `?status=${status}` : ''}`); }
+  reviewLeave(id, data) { return this.request('PUT', `/leave/${id}/review`, data); }
+  getEmployeeLeaveBalance(id) { return this.request('GET', `/employees/${id}/leave-balance`); }
+
 }
 
 export const api = new ApiClient();

@@ -131,6 +131,38 @@ type Standup struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// ─── Leave Requests ──────────────────────────────────────────
+
+type LeaveType string
+type LeaveStatus string
+
+const (
+	LeaveAnnual LeaveType = "annual"
+	LeaveSick   LeaveType = "sick"
+
+	LeavePending  LeaveStatus = "pending"
+	LeaveApproved LeaveStatus = "approved"
+	LeaveRejected LeaveStatus = "rejected"
+)
+
+type LeaveRequest struct {
+	ID          uint        `gorm:"primaryKey" json:"id"`
+	UserID      uint        `gorm:"not null;index" json:"user_id"`
+	User        User        `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	LeaveType   LeaveType   `gorm:"not null" json:"leave_type"`
+	StartDate   string      `gorm:"not null;size:10" json:"start_date"` // YYYY-MM-DD
+	EndDate     string      `gorm:"not null;size:10" json:"end_date"`
+	Days        float64     `gorm:"not null" json:"days"`
+	Reason      string      `json:"reason"`
+	SickNote    string      `json:"sick_note"` // doctor's note details for sick leave
+	Status      LeaveStatus `gorm:"not null;default:pending" json:"status"`
+	ReviewedBy  *uint       `json:"reviewed_by"`
+	ReviewedAt  *time.Time  `json:"reviewed_at"`
+	ReviewNotes string      `json:"review_notes"`
+	CreatedAt   time.Time   `json:"created_at"`
+	UpdatedAt   time.Time   `json:"updated_at"`
+}
+
 // ─── Agent Setup ──────────────────────────────────────────────
 
 type AgentSetupToken struct {
@@ -341,4 +373,28 @@ type ClockSessionResponse struct {
 	TotalKeystrokes    int               `json:"total_keystrokes"`
 	TopApps            []AppDur          `json:"top_apps"`
 	Segments           []ActivitySegment `json:"segments"`
+}
+
+// ─── Leave DTOs ──────────────────────────────────────────
+
+type LeaveRequestDTO struct {
+	LeaveType string  `json:"leave_type"`
+	StartDate string  `json:"start_date"`
+	EndDate   string  `json:"end_date"`
+	Days      float64 `json:"days"`
+	Reason    string  `json:"reason"`
+	SickNote  string  `json:"sick_note"`
+}
+
+type LeaveBalanceResponse struct {
+	TotalDaysWorked  int     `json:"total_days_worked"`
+	AccruedDays      float64 `json:"accrued_days"`
+	UsedDays         float64 `json:"used_days"`
+	AvailableDays    float64 `json:"available_days"`
+	PendingDays      float64 `json:"pending_days"`
+}
+
+type LeaveReviewDTO struct {
+	Status      string `json:"status"`
+	ReviewNotes string `json:"review_notes"`
 }

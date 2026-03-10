@@ -40,6 +40,10 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
   const [taskForm, setTaskForm] = useState({ title: '', description: '', assignee_id: null, priority: 'medium', due_date: '' });
   const [kpiForm, setKpiForm] = useState({ user_id: null, metric: '', target: 0, current: 0, unit: '' });
 
+  // Leave management
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveFilter, setLeaveFilter] = useState('pending');
+
   // Filters
   const [taskFilter, setTaskFilter] = useState('all');
   const [standupDate, setStandupDate] = useState(todayStr());
@@ -125,6 +129,17 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
       .then(setEmployeeTimeline)
       .catch(() => setEmployeeTimeline(null));
   }, [expandedEmployee, timelineDate]);
+
+  // Load leave requests
+  useEffect(() => {
+    if (tab !== 'leave') return;
+    api.listAllLeave(leaveFilter === 'all' ? '' : leaveFilter).then(setLeaveRequests).catch(() => setLeaveRequests([]));
+  }, [tab, leaveFilter]);
+
+  const handleReviewLeave = async (leaveId, status, reviewNotes = '') => {
+    await api.reviewLeave(leaveId, { status, review_notes: reviewNotes });
+    api.listAllLeave(leaveFilter === 'all' ? '' : leaveFilter).then(setLeaveRequests).catch(() => setLeaveRequests([]));
+  };
 
   // ─── Handlers ───────────────────────────────────────────────
 
@@ -898,6 +913,82 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                         <div style={{ fontSize: '12px', color: colors.textDimmer }}>No segments recorded</div>
                       )
                     )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══ LEAVE REQUESTS ════════════════════════════════ */}
+      {tab === 'leave' && (
+        <div>
+          <PageHeader title="Leave Requests" />
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+            {['pending', 'approved', 'rejected', 'all'].map(f => (
+              <Btn key={f} variant={leaveFilter === f ? 'primary' : 'secondary'} onClick={() => setLeaveFilter(f)}
+                style={{ padding: '6px 16px', fontSize: '12px', textTransform: 'capitalize' }}>
+                {f}
+              </Btn>
+            ))}
+          </div>
+
+          {leaveRequests.length === 0 ? (
+            <EmptyState icon="🏖" message={`No ${leaveFilter === 'all' ? '' : leaveFilter} leave requests.`} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {leaveRequests.map(leave => {
+                const statusColor = leave.status === 'approved' ? colors.green : leave.status === 'rejected' ? colors.red : colors.yellow;
+                return (
+                  <Card key={leave.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '15px', fontWeight: 600, color: colors.text }}>{leave.user?.name || 'Unknown'}</span>
+                          <span style={{
+                            fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
+                            background: leave.leave_type === 'sick' ? 'rgba(239,68,68,0.15)' : 'rgba(59,130,246,0.15)',
+                            color: leave.leave_type === 'sick' ? colors.red : colors.accent,
+                          }}>
+                            {leave.leave_type === 'sick' ? 'SICK' : 'ANNUAL'}
+                          </span>
+                          <span style={{
+                            fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
+                            background: `${statusColor}22`, color: statusColor, textTransform: 'uppercase',
+                          }}>
+                            {leave.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: colors.textMuted, marginBottom: '4px' }}>
+                          {formatDate(leave.start_date)} — {formatDate(leave.end_date)} ({leave.days} day{leave.days !== 1 ? 's' : ''})
+                        </div>
+                        {leave.reason && <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '2px' }}>Reason: {leave.reason}</div>}
+                        {leave.sick_note && (
+                          <div style={{ fontSize: '12px', color: colors.red, marginBottom: '2px', padding: '6px 10px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', marginTop: '4px' }}>
+                            Sick Note: {leave.sick_note}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '11px', color: colors.textDimmer, marginTop: '4px' }}>
+                          Requested {formatDate(leave.created_at?.split('T')[0] || '')}
+                        </div>
+                      </div>
+                      {leave.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                          <Btn variant="success" onClick={() => handleReviewLeave(leave.id, 'approved')}
+                            style={{ padding: '8px 16px', fontSize: '12px' }}>
+                            Approve
+                          </Btn>
+                          <Btn variant="danger" onClick={() => {
+                            const notes = prompt('Rejection reason (optional):');
+                            handleReviewLeave(leave.id, 'rejected', notes || '');
+                          }}
+                            style={{ padding: '8px 16px', fontSize: '12px' }}>
+                            Reject
+                          </Btn>
+                        </div>
+                      )}
+                    </div>
                   </Card>
                 );
               })}

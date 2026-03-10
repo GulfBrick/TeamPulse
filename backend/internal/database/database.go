@@ -54,6 +54,7 @@ func Migrate() {
 		&models.ActivitySegment{},
 		&models.DailyAggregation{},
 		&models.AuditLog{},
+		&models.LeaveRequest{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)

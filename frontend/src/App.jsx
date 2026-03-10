@@ -14,6 +14,7 @@ const adminNavItems = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'kpis', label: 'KPIs' },
   { key: 'feedback', label: 'Daily Feedback' },
+  { key: 'leave', label: 'Leave Requests' },
   { key: 'monitoring', label: 'Monitoring' },
 ];
 
@@ -23,6 +24,7 @@ const employeeNavItems = [
   { key: 'timeline', label: 'My Timeline' },
   { key: 'tasks', label: 'My Tasks' },
   { key: 'kpis', label: 'My KPIs' },
+  { key: 'leave', label: 'Leave' },
 ];
 
 export default function App() {

@@ -123,6 +123,12 @@ func main() {
 	api.GET("/segments", handlers.GetSegments)
 	api.GET("/segments/me", handlers.GetMySegments)
 
+	// Leave requests (employee)
+	api.POST("/leave", handlers.ApplyLeave)
+	api.GET("/leave/me", handlers.ListMyLeave)
+	api.GET("/leave/balance", handlers.GetLeaveBalance)
+	api.DELETE("/leave/:id", handlers.CancelLeave)
+
 	// ─── Admin Routes ─────────────────────────────────────────
 	admin := api.Group("", mw.AdminOnly)
 
@@ -138,6 +144,9 @@ func main() {
 	admin.GET("/aggregations", handlers.GetAggregations)
 	admin.GET("/clock/sessions", handlers.GetClockSessions)
 	admin.GET("/employee/:id/timeline", handlers.GetEmployeeTimeline)
+	admin.GET("/leave", handlers.ListAllLeave)
+	admin.PUT("/leave/:id/review", handlers.ReviewLeave)
+	admin.GET("/employees/:id/leave-balance", handlers.AdminGetLeaveBalance)
 
 	// WebSocket for live monitoring (admin)
 	e.GET("/api/ws/monitor", handlers.MonitorWebSocket, handlers.WsAuthMiddleware)

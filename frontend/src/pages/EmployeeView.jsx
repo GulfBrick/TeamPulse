@@ -13,6 +13,15 @@ export default function EmployeeView({ section }) {
   const [kpis, setKPIs] = useState([]);
   const [showStandup, setShowStandup] = useState(false);
   const [standupForm, setStandupForm] = useState({ yesterday: '', today: '', blockers: '' });
+  const [showClockOutFeedback, setShowClockOutFeedback] = useState(false);
+  const [clockOutForm, setClockOutForm] = useState({ yesterday: '', today: '', blockers: '' });
+
+  // Leave state
+  const [leaveBalance, setLeaveBalance] = useState(null);
+  const [myLeaves, setMyLeaves] = useState([]);
+  const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [leaveForm, setLeaveForm] = useState({ leave_type: 'annual', start_date: '', end_date: '', days: 1, reason: '', sick_note: '' });
+
   const [elapsed, setElapsed] = useState(0);
   const [taskElapsed, setTaskElapsed] = useState(0);
   const [dailyHours, setDailyHours] = useState([]);
@@ -74,6 +83,18 @@ export default function EmployeeView({ section }) {
     if (tab !== 'sessions') return;
     api.getMyClockSessions(sessionDate).then(setMySessions).catch(() => setMySessions([]));
   }, [tab, sessionDate]);
+
+  // Load leave data
+  useEffect(() => {
+    if (tab !== 'leave') return;
+    Promise.all([
+      api.getLeaveBalance().catch(() => null),
+      api.getMyLeave().catch(() => []),
+    ]).then(([bal, leaves]) => {
+      setLeaveBalance(bal);
+      setMyLeaves(leaves);
+    });
+  }, [tab]);
 
   // Check agent setup status on mount — show onboarding if not done
   useEffect(() => {
@@ -180,11 +201,42 @@ export default function EmployeeView({ section }) {
 
   const handleClock = async () => {
     if (clockStatus.clocked_in) {
-      await api.clockOut();
-    } else {
-      await api.clockIn();
+      // Show feedback modal before clocking out
+      setClockOutForm({ yesterday: '', today: '', blockers: '' });
+      setShowClockOutFeedback(true);
+      return;
     }
+    await api.clockIn();
     refresh();
+  };
+
+  const handleClockOutSubmit = async () => {
+    // Submit feedback as a standup, then clock out
+    if (clockOutForm.yesterday || clockOutForm.today) {
+      await api.createStandup(clockOutForm).catch(() => {});
+    }
+    await api.clockOut();
+    setShowClockOutFeedback(false);
+    refresh();
+  };
+
+  const handleClockOutSkip = async () => {
+    await api.clockOut();
+    setShowClockOutFeedback(false);
+    refresh();
+  };
+
+  const handleApplyLeave = async () => {
+    await api.applyLeave(leaveForm);
+    setShowLeaveForm(false);
+    setLeaveForm({ leave_type: 'annual', start_date: '', end_date: '', days: 1, reason: '', sick_note: '' });
+    // Refresh leave data
+    const [bal, leaves] = await Promise.all([
+      api.getLeaveBalance().catch(() => null),
+      api.getMyLeave().catch(() => []),
+    ]);
+    setLeaveBalance(bal);
+    setMyLeaves(leaves);
   };
 
   const handleTaskTimer = async (taskId) => {
@@ -656,6 +708,151 @@ export default function EmployeeView({ section }) {
         </div>
       )}
 
+      {/* ─── Leave ─────────────────────────────────────── */}
+      {tab === 'leave' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: colors.text }}>Leave</h2>
+            <Btn onClick={() => setShowLeaveForm(true)}>+ Request Leave</Btn>
+          </div>
+
+          {/* Balance cards */}
+          {leaveBalance && (
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '24px' }}>
+              <StatCard label="Available" value={`${leaveBalance.available_days.toFixed(1)}d`} accent={colors.green} />
+              <StatCard label="Accrued" value={`${leaveBalance.accrued_days.toFixed(1)}d`} accent={colors.accent} sub={`${leaveBalance.total_days_worked} days worked`} />
+              <StatCard label="Used" value={`${leaveBalance.used_days.toFixed(1)}d`} accent={colors.yellow} />
+              {leaveBalance.pending_days > 0 && (
+                <StatCard label="Pending" value={`${leaveBalance.pending_days.toFixed(1)}d`} accent={colors.red} />
+              )}
+            </div>
+          )}
+
+          <Card style={{ marginBottom: '16px', padding: '16px 20px', borderLeft: `3px solid ${colors.accent}` }}>
+            <div style={{ fontSize: '13px', color: colors.textDim }}>
+              You accrue <strong style={{ color: colors.text }}>1.5 days</strong> of annual leave for every <strong style={{ color: colors.text }}>30 days</strong> worked.
+            </div>
+          </Card>
+
+          {/* Leave history */}
+          {myLeaves.length === 0 ? (
+            <EmptyState icon="🏖" message="No leave requests yet." sub="Click '+ Request Leave' to apply for annual leave or report sick leave." />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {myLeaves.map(leave => {
+                const statusColor = leave.status === 'approved' ? colors.green : leave.status === 'rejected' ? colors.red : colors.yellow;
+                return (
+                  <Card key={leave.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: colors.text }}>
+                          {leave.leave_type === 'sick' ? 'Sick Leave' : 'Annual Leave'}
+                        </span>
+                        <span style={{
+                          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px',
+                          background: `${statusColor}22`, color: statusColor, textTransform: 'uppercase',
+                        }}>
+                          {leave.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: colors.textDim }}>
+                        {formatDate(leave.start_date)} — {formatDate(leave.end_date)} ({leave.days} day{leave.days !== 1 ? 's' : ''})
+                      </div>
+                      {leave.reason && <div style={{ fontSize: '12px', color: colors.textMuted, marginTop: '2px' }}>{leave.reason}</div>}
+                      {leave.sick_note && <div style={{ fontSize: '12px', color: colors.textMuted, marginTop: '2px' }}>Sick note: {leave.sick_note}</div>}
+                      {leave.review_notes && <div style={{ fontSize: '12px', color: colors.textDim, marginTop: '4px', fontStyle: 'italic' }}>Admin: {leave.review_notes}</div>}
+                    </div>
+                    {leave.status === 'pending' && (
+                      <Btn variant="secondary" onClick={async () => {
+                        await api.cancelLeave(leave.id);
+                        setMyLeaves(myLeaves.filter(l => l.id !== leave.id));
+                        api.getLeaveBalance().then(setLeaveBalance).catch(() => {});
+                      }} style={{ fontSize: '12px', padding: '6px 12px' }}>
+                        Cancel
+                      </Btn>
+                    )}
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Leave Request Modal ─────────────────────────── */}
+      {showLeaveForm && (
+        <Modal title="Request Leave" onClose={() => setShowLeaveForm(false)}>
+          <Input label="Type" type="select" value={leaveForm.leave_type} onChange={e => setLeaveForm({ ...leaveForm, leave_type: e.target.value })}>
+            <option value="annual">Annual Leave</option>
+            <option value="sick">Sick Leave</option>
+          </Input>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}><Input label="Start Date" type="date" value={leaveForm.start_date} onChange={e => setLeaveForm({ ...leaveForm, start_date: e.target.value })} /></div>
+            <div style={{ flex: 1 }}><Input label="End Date" type="date" value={leaveForm.end_date} onChange={e => setLeaveForm({ ...leaveForm, end_date: e.target.value })} /></div>
+            <div style={{ width: '80px' }}><Input label="Days" type="number" value={leaveForm.days} onChange={e => setLeaveForm({ ...leaveForm, days: Number(e.target.value) })} /></div>
+          </div>
+          <Input label="Reason" type="textarea" value={leaveForm.reason} onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })} placeholder="Why do you need leave?" />
+          {leaveForm.leave_type === 'sick' && (
+            <Input label="Sick Note / Doctor Details" type="textarea" value={leaveForm.sick_note} onChange={e => setLeaveForm({ ...leaveForm, sick_note: e.target.value })} placeholder="Doctor's name, diagnosis, expected return date..." />
+          )}
+          {leaveForm.leave_type === 'annual' && leaveBalance && (
+            <div style={{ fontSize: '12px', color: leaveForm.days > leaveBalance.available_days ? colors.red : colors.green, marginBottom: '8px' }}>
+              Available balance: {leaveBalance.available_days.toFixed(1)} days
+              {leaveForm.days > leaveBalance.available_days && ' — insufficient balance!'}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <Btn variant="secondary" onClick={() => setShowLeaveForm(false)}>Cancel</Btn>
+            <Btn onClick={handleApplyLeave} disabled={!leaveForm.start_date || !leaveForm.end_date || leaveForm.days <= 0}>Submit Request</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* ─── Clock-Out Feedback Modal ─────────────────────── */}
+      {showClockOutFeedback && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 10000,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: colors.card, borderRadius: '20px', padding: '40px 44px',
+            maxWidth: '520px', width: '92%',
+            border: `1px solid ${colors.borderLight}`,
+            boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>📋</div>
+              <h2 style={{ margin: '0 0 6px', fontSize: '22px', fontWeight: 800, color: colors.text }}>
+                End of Day Report
+              </h2>
+              <p style={{ margin: 0, fontSize: '13px', color: colors.textDim }}>
+                Before you clock out, tell us about your day.
+              </p>
+            </div>
+
+            <Input label="What did you accomplish today?" type="textarea" value={clockOutForm.yesterday}
+              onChange={e => setClockOutForm({ ...clockOutForm, yesterday: e.target.value })}
+              placeholder="Tasks completed, progress made..." />
+            <Input label="Any struggles or blockers?" type="textarea" value={clockOutForm.blockers}
+              onChange={e => setClockOutForm({ ...clockOutForm, blockers: e.target.value })}
+              placeholder="Issues you ran into (optional)..." />
+            <Input label="What's your next task?" type="textarea" value={clockOutForm.today}
+              onChange={e => setClockOutForm({ ...clockOutForm, today: e.target.value })}
+              placeholder="What you'll work on next..." />
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <Btn variant="secondary" onClick={handleClockOutSkip} style={{ flex: 1, padding: '14px' }}>
+                Skip & Clock Out
+              </Btn>
+              <Btn variant="danger" onClick={handleClockOutSubmit} style={{ flex: 2, padding: '14px', fontSize: '15px', fontWeight: 700 }}>
+                Submit & Clock Out
+              </Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── Daily Feedback Modal ─────────────────────────── */}
       {showStandup && (
         <Modal title="Daily Feedback" onClose={() => setShowStandup(false)}>
@@ -668,9 +865,6 @@ export default function EmployeeView({ section }) {
           </div>
         </Modal>
       )}
-
-      {/* ─── Activity Check Modal (Disabled) ──────────────────────── */}
-      {/* Activity check popup removed */}
 
       {/* ─── Setup Key Modal ─────────────────────────────── */}
       {showSetupKeyModal && (
