@@ -8,6 +8,7 @@ const MOUSEMOVE_THROTTLE = 1000; // count at most 1 mousemove per second
 /**
  * Tracks mouse/keyboard activity and sends pings to the server.
  * Counts granular events (mouse moves, clicks, keystrokes, scrolls) per ping interval.
+ * Also tracks which browser tab/page the user is on.
  * Only runs when the user is clocked in.
  */
 export function useActivityTracker(isClockedIn) {
@@ -66,7 +67,11 @@ export function useActivityTracker(isClockedIn) {
       const snapshot = { ...counters.current };
       counters.current = { mouseMoves: 0, mouseClicks: 0, keystrokes: 0, scrollEvents: 0 };
 
-      api.sendPing(isActive, Math.floor(idleMs / 1000), snapshot).catch(err => {
+      // Capture current tab/page info
+      const pageTitle = document.title || 'Unknown Page';
+      const appName = document.hidden ? 'Browser (Background)' : 'Web Browser';
+
+      api.sendPing(isActive, Math.floor(idleMs / 1000), snapshot, appName, pageTitle).catch(err => {
         console.warn('Activity ping failed:', err.message);
       });
     }, PING_INTERVAL);

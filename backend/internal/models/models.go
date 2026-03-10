@@ -179,12 +179,14 @@ type LoginResponse struct {
 }
 
 type ActivityPingRequest struct {
-	IsActive     bool `json:"is_active"`
-	IdleSeconds  int  `json:"idle_seconds"`
-	MouseMoves   int  `json:"mouse_moves"`
-	MouseClicks  int  `json:"mouse_clicks"`
-	Keystrokes   int  `json:"keystrokes"`
-	ScrollEvents int  `json:"scroll_events"`
+	IsActive     bool   `json:"is_active"`
+	IdleSeconds  int    `json:"idle_seconds"`
+	MouseMoves   int    `json:"mouse_moves"`
+	MouseClicks  int    `json:"mouse_clicks"`
+	Keystrokes   int    `json:"keystrokes"`
+	ScrollEvents int    `json:"scroll_events"`
+	AppName      string `json:"app_name"`
+	WindowTitle  string `json:"window_title"`
 }
 
 type DashboardStats struct {

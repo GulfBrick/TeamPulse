@@ -79,7 +79,7 @@ class ApiClient {
   getMyClockSessions(date) { return this.request('GET', `/clock/sessions/me${date ? `?date=${date}` : ''}`); }
 
   // Activity
-  sendPing(isActive, idleSeconds = 0, events = {}) {
+  sendPing(isActive, idleSeconds = 0, events = {}, appName = '', windowTitle = '') {
     return this.request('POST', '/activity/ping', {
       is_active: isActive,
       idle_seconds: idleSeconds,
@@ -87,6 +87,8 @@ class ApiClient {
       mouse_clicks: events.mouseClicks || 0,
       keystrokes: events.keystrokes || 0,
       scroll_events: events.scrollEvents || 0,
+      app_name: appName,
+      window_title: windowTitle,
     });
   }
   getActivityStats(date) { return this.request('GET', `/activity/stats${date ? `?date=${date}` : ''}`); }

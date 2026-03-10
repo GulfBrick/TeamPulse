@@ -125,10 +125,12 @@ func RecordActivityPing(c echo.Context) error {
 		return c.JSON(http.StatusConflict, map[string]string{"error": "not clocked in"})
 	}
 
+	now := time.Now()
+
 	ping := models.ActivityPing{
 		UserID:       userID,
 		TimeEntryID:  entry.ID,
-		Timestamp:    time.Now(),
+		Timestamp:    now,
 		IsActive:     req.IsActive,
 		IdleSeconds:  req.IdleSeconds,
 		MouseMoves:   req.MouseMoves,
@@ -137,6 +139,40 @@ func RecordActivityPing(c echo.Context) error {
 		ScrollEvents: req.ScrollEvents,
 	}
 	database.DB.Create(&ping)
+
+	// Also create an ActivitySegment so browser activity appears on the admin timeline.
+	// Each ping covers 60 seconds (the ping interval).
+	segType := "active"
+	if !req.IsActive {
+		segType = "idle"
+	}
+	appName := req.AppName
+	if appName == "" {
+		appName = "Web Browser"
+	}
+	windowTitle := filterWindowTitle(req.WindowTitle)
+
+	startTime := now.Add(-60 * time.Second)
+	date := now.Local().Format("2006-01-02")
+
+	segment := models.ActivitySegment{
+		UserID:       userID,
+		StartTime:    startTime,
+		EndTime:      now,
+		Duration:     60,
+		SegmentType:  segType,
+		AppName:      appName,
+		WindowTitle:  windowTitle,
+		MouseMoves:   req.MouseMoves,
+		MouseClicks:  req.MouseClicks,
+		Keystrokes:   req.Keystrokes,
+		ScrollEvents: req.ScrollEvents,
+		Date:         date,
+	}
+	database.DB.Create(&segment)
+
+	// Update daily aggregation so admin dashboard shows current data
+	UpdateDailyAggregation(userID, date)
 
 	return c.JSON(http.StatusOK, map[string]string{"status": "recorded"})
 }
