@@ -1,9 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { colors, formatTime } from './UI';
-
-const HOUR_START = 6; // 6 AM
-const HOUR_END = 22; // 10 PM
-const TOTAL_HOURS = HOUR_END - HOUR_START;
 
 const segmentColors = {
   active: '#22c55e',
@@ -14,6 +10,7 @@ const segmentColors = {
 
 /**
  * DayTimeline — Horizontal timeline bar showing colored blocks per segment.
+ * Automatically adjusts the visible time range to fit the actual data.
  *
  * Props:
  *   segments: ActivitySegment[] from API
@@ -24,6 +21,36 @@ export default function DayTimeline({ segments = [], onSegmentClick, compact = f
   const [tooltip, setTooltip] = useState(null);
   const barHeight = compact ? 28 : 40;
 
+  // Compute dynamic time range from segments, with sensible defaults
+  const { hourStart, hourEnd, totalHours } = useMemo(() => {
+    if (segments.length === 0) {
+      return { hourStart: 6, hourEnd: 22, totalHours: 16 };
+    }
+
+    let minHour = 24, maxHour = 0;
+    segments.forEach(seg => {
+      const s = new Date(seg.start_time);
+      const e = new Date(seg.end_time);
+      const sh = s.getHours() + s.getMinutes() / 60;
+      const eh = e.getHours() + e.getMinutes() / 60;
+      if (sh < minHour) minHour = sh;
+      if (eh > maxHour) maxHour = eh;
+    });
+
+    // Pad by 1 hour on each side, snap to whole hours
+    let start = Math.floor(Math.max(0, minHour - 1));
+    let end = Math.ceil(Math.min(24, maxHour + 1));
+
+    // Minimum 4-hour range for readability
+    if (end - start < 4) {
+      const mid = (start + end) / 2;
+      start = Math.floor(Math.max(0, mid - 2));
+      end = Math.ceil(Math.min(24, mid + 2));
+    }
+
+    return { hourStart: start, hourEnd: end, totalHours: end - start };
+  }, [segments]);
+
   // Convert segments to positioned blocks
   const blocks = segments.map((seg, i) => {
     const start = new Date(seg.start_time);
@@ -33,13 +60,13 @@ export default function DayTimeline({ segments = [], onSegmentClick, compact = f
     const endHour = end.getHours() + end.getMinutes() / 60;
 
     // Clamp to visible range
-    const clampedStart = Math.max(startHour, HOUR_START);
-    const clampedEnd = Math.min(endHour, HOUR_END);
+    const clampedStart = Math.max(startHour, hourStart);
+    const clampedEnd = Math.min(endHour, hourEnd);
 
     if (clampedEnd <= clampedStart) return null;
 
-    const leftPct = ((clampedStart - HOUR_START) / TOTAL_HOURS) * 100;
-    const widthPct = ((clampedEnd - clampedStart) / TOTAL_HOURS) * 100;
+    const leftPct = ((clampedStart - hourStart) / totalHours) * 100;
+    const widthPct = ((clampedEnd - clampedStart) / totalHours) * 100;
 
     return {
       key: seg.id || i,
@@ -50,11 +77,13 @@ export default function DayTimeline({ segments = [], onSegmentClick, compact = f
     };
   }).filter(Boolean);
 
-  // Time axis labels
+  // Time axis labels — every 2 hours (or every 1 hour if range is small)
   const hours = [];
-  for (let h = HOUR_START; h <= HOUR_END; h += 2) {
-    const leftPct = ((h - HOUR_START) / TOTAL_HOURS) * 100;
-    hours.push({ label: `${h}:00`, left: `${leftPct}%` });
+  const step = totalHours <= 6 ? 1 : 2;
+  for (let h = hourStart; h <= hourEnd; h += step) {
+    const leftPct = ((h - hourStart) / totalHours) * 100;
+    const label = `${h}:00`;
+    hours.push({ label, left: `${leftPct}%` });
   }
 
   return (
