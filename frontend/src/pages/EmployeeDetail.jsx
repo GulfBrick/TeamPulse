@@ -101,6 +101,52 @@ export default function EmployeeDetail({ employeeId, onBack }) {
         <DayTimeline segments={segments} />
       </Card>
 
+      {/* Activity Segments Detail Table */}
+      <Card style={{ marginBottom: '24px' }}>
+        <h3 style={{ margin: '0 0 12px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>Activity Detail ({formatDate(date)})</h3>
+        {segments.length === 0 ? (
+          <div style={{ fontSize: '13px', color: colors.textDim, textAlign: 'center', padding: '20px' }}>No activity data for this day</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
+                  {['Time', 'Type', 'App / Window', 'Duration', 'Clicks', 'Keys', 'Moves'].map(h => (
+                    <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: colors.textDim, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {segments.map((seg, i) => {
+                  const start = new Date(seg.start_time);
+                  const end = new Date(seg.end_time);
+                  const fmt = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const typeColor = seg.segment_type === 'active' ? colors.green : seg.segment_type === 'idle' ? colors.yellow : colors.accent;
+                  return (
+                    <tr key={seg.id || i} style={{ borderBottom: `1px solid ${colors.borderLight}20` }}>
+                      <td style={{ padding: '6px 10px', color: colors.textMuted, whiteSpace: 'nowrap' }}>{fmt(start)} — {fmt(end)}</td>
+                      <td style={{ padding: '6px 10px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: `${typeColor}22`, color: typeColor, textTransform: 'capitalize' }}>
+                          {seg.segment_type}
+                        </span>
+                      </td>
+                      <td style={{ padding: '6px 10px', color: colors.text, maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {seg.app_name || '—'}
+                        {seg.window_title && <span style={{ color: colors.textDim, marginLeft: '6px' }}>— {seg.window_title}</span>}
+                      </td>
+                      <td style={{ padding: '6px 10px', color: colors.textMuted }}>{formatTime(seg.duration_seconds || 0)}</td>
+                      <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_clicks || 0}</td>
+                      <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.keystrokes || 0}</td>
+                      <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_moves || 0}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
         {/* App usage breakdown */}
         <Card>

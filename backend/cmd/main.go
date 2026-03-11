@@ -123,6 +123,9 @@ func main() {
 	api.GET("/segments", handlers.GetSegments)
 	api.GET("/segments/me", handlers.GetMySegments)
 
+	// File upload
+	api.POST("/upload", handlers.UploadFile)
+
 	// Leave requests (employee)
 	api.POST("/leave", handlers.ApplyLeave)
 	api.GET("/leave/me", handlers.ListMyLeave)
@@ -150,6 +153,9 @@ func main() {
 
 	// WebSocket for live monitoring (admin)
 	e.GET("/api/ws/monitor", handlers.MonitorWebSocket, handlers.WsAuthMiddleware)
+
+	// Serve uploaded files (sick notes, etc.)
+	e.Static("/uploads", "uploads")
 
 	// Serve static frontend in production
 	e.Static("/", "static")

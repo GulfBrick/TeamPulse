@@ -21,6 +21,9 @@ export default function EmployeeView({ section }) {
   const [myLeaves, setMyLeaves] = useState([]);
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [leaveForm, setLeaveForm] = useState({ leave_type: 'annual', start_date: '', end_date: '', days: 1, reason: '', sick_note: '' });
+  const [sickNoteFile, setSickNoteFile] = useState(null);
+  const [sickNotePreview, setSickNotePreview] = useState(null);
+  const [uploadingNote, setUploadingNote] = useState(false);
 
   const [elapsed, setElapsed] = useState(0);
   const [taskElapsed, setTaskElapsed] = useState(0);
@@ -227,9 +230,24 @@ export default function EmployeeView({ section }) {
   };
 
   const handleApplyLeave = async () => {
-    await api.applyLeave(leaveForm);
+    let sickNoteUrl = '';
+    if (sickNoteFile && leaveForm.leave_type === 'sick') {
+      setUploadingNote(true);
+      try {
+        const result = await api.uploadFile(sickNoteFile);
+        sickNoteUrl = result.url;
+      } catch (err) {
+        alert('Failed to upload sick note photo: ' + err.message);
+        setUploadingNote(false);
+        return;
+      }
+      setUploadingNote(false);
+    }
+    await api.applyLeave({ ...leaveForm, sick_note: sickNoteUrl });
     setShowLeaveForm(false);
     setLeaveForm({ leave_type: 'annual', start_date: '', end_date: '', days: 1, reason: '', sick_note: '' });
+    setSickNoteFile(null);
+    setSickNotePreview(null);
     // Refresh leave data
     const [bal, leaves] = await Promise.all([
       api.getLeaveBalance().catch(() => null),
@@ -599,6 +617,50 @@ export default function EmployeeView({ section }) {
             <DayTimeline segments={mySegments} />
           </Card>
 
+          {/* Activity Detail Table */}
+          {mySegments.length > 0 && (
+            <Card style={{ marginBottom: '20px' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: '15px', color: colors.text, fontWeight: 700 }}>Activity Detail ({formatDate(segmentDate)})</h3>
+              <div style={{ overflowX: 'auto', maxHeight: '400px', overflow: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${colors.borderLight}` }}>
+                      {['Time', 'Type', 'App / Window', 'Duration', 'Clicks', 'Keys', 'Moves'].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: colors.textDim, fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', position: 'sticky', top: 0, background: colors.card }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mySegments.map((seg, i) => {
+                      const start = new Date(seg.start_time);
+                      const end = new Date(seg.end_time);
+                      const fmt = d => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const typeColor = seg.segment_type === 'active' ? colors.green : seg.segment_type === 'idle' ? colors.yellow : colors.accent;
+                      return (
+                        <tr key={seg.id || i} style={{ borderBottom: `1px solid ${colors.borderLight}20` }}>
+                          <td style={{ padding: '6px 10px', color: colors.textMuted, whiteSpace: 'nowrap' }}>{fmt(start)} — {fmt(end)}</td>
+                          <td style={{ padding: '6px 10px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: `${typeColor}22`, color: typeColor, textTransform: 'capitalize' }}>
+                              {seg.segment_type}
+                            </span>
+                          </td>
+                          <td style={{ padding: '6px 10px', color: colors.text, maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {seg.app_name || '—'}
+                            {seg.window_title && <span style={{ color: colors.textDim, marginLeft: '6px' }}>— {seg.window_title}</span>}
+                          </td>
+                          <td style={{ padding: '6px 10px', color: colors.textMuted }}>{formatTime(seg.duration_seconds || 0)}</td>
+                          <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_clicks || 0}</td>
+                          <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.keystrokes || 0}</td>
+                          <td style={{ padding: '6px 10px', color: colors.textMuted }}>{seg.mouse_moves || 0}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
           {/* App usage breakdown */}
           {mySegments.length > 0 && (
             <Card>
@@ -626,7 +688,7 @@ export default function EmployeeView({ section }) {
           )}
 
           {mySegments.length === 0 && (
-            <EmptyState icon="📊" message="No timeline data for this date." sub="Activity segments will appear here once the desktop agent is running." />
+            <EmptyState icon="📊" message="No timeline data for this date." sub="Activity data appears here while you are clocked in. Try changing the date if you worked on a different day." />
           )}
         </div>
       )}
@@ -759,7 +821,12 @@ export default function EmployeeView({ section }) {
                         {formatDate(leave.start_date)} — {formatDate(leave.end_date)} ({leave.days} day{leave.days !== 1 ? 's' : ''})
                       </div>
                       {leave.reason && <div style={{ fontSize: '12px', color: colors.textMuted, marginTop: '2px' }}>{leave.reason}</div>}
-                      {leave.sick_note && <div style={{ fontSize: '12px', color: colors.textMuted, marginTop: '2px' }}>Sick note: {leave.sick_note}</div>}
+                      {leave.sick_note && (
+                        <div style={{ marginTop: '6px' }}>
+                          <span style={{ fontSize: '11px', color: colors.textDim, fontWeight: 600 }}>Doctor's Note:</span>
+                          <img src={leave.sick_note} alt="Sick note" style={{ display: 'block', maxWidth: '200px', maxHeight: '150px', borderRadius: '6px', marginTop: '4px', cursor: 'pointer', border: `1px solid ${colors.borderLight}` }} onClick={() => window.open(leave.sick_note, '_blank')} />
+                        </div>
+                      )}
                       {leave.review_notes && <div style={{ fontSize: '12px', color: colors.textDim, marginTop: '4px', fontStyle: 'italic' }}>Admin: {leave.review_notes}</div>}
                     </div>
                     {leave.status === 'pending' && (
@@ -793,7 +860,41 @@ export default function EmployeeView({ section }) {
           </div>
           <Input label="Reason" type="textarea" value={leaveForm.reason} onChange={e => setLeaveForm({ ...leaveForm, reason: e.target.value })} placeholder="Why do you need leave?" />
           {leaveForm.leave_type === 'sick' && (
-            <Input label="Sick Note / Doctor Details" type="textarea" value={leaveForm.sick_note} onChange={e => setLeaveForm({ ...leaveForm, sick_note: e.target.value })} placeholder="Doctor's name, diagnosis, expected return date..." />
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: colors.textDim, marginBottom: '6px' }}>
+                Doctor's Note (Photo)
+              </label>
+              <div style={{
+                border: `2px dashed ${colors.borderLight}`, borderRadius: '8px', padding: '16px', textAlign: 'center',
+                background: sickNotePreview ? 'transparent' : colors.bg, cursor: 'pointer', position: 'relative',
+              }} onClick={() => document.getElementById('sick-note-upload').click()}>
+                <input
+                  id="sick-note-upload"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const f = e.target.files[0];
+                    if (f) {
+                      setSickNoteFile(f);
+                      setSickNotePreview(URL.createObjectURL(f));
+                    }
+                  }}
+                />
+                {sickNotePreview ? (
+                  <div>
+                    <img src={sickNotePreview} alt="Sick note preview" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px' }} />
+                    <div style={{ fontSize: '11px', color: colors.textDim, marginTop: '8px' }}>{sickNoteFile?.name} — Click to change</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: '24px', marginBottom: '4px' }}>📷</div>
+                    <div style={{ fontSize: '13px', color: colors.textMuted }}>Click to upload doctor's note photo</div>
+                    <div style={{ fontSize: '11px', color: colors.textDim, marginTop: '4px' }}>JPG, PNG, GIF — Max 10MB</div>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
           {leaveForm.leave_type === 'annual' && leaveBalance && (
             <div style={{ fontSize: '12px', color: leaveForm.days > leaveBalance.available_days ? colors.red : colors.green, marginBottom: '8px' }}>
@@ -803,7 +904,7 @@ export default function EmployeeView({ section }) {
           )}
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
             <Btn variant="secondary" onClick={() => setShowLeaveForm(false)}>Cancel</Btn>
-            <Btn onClick={handleApplyLeave} disabled={!leaveForm.start_date || !leaveForm.end_date || leaveForm.days <= 0}>Submit Request</Btn>
+            <Btn onClick={handleApplyLeave} disabled={!leaveForm.start_date || !leaveForm.end_date || leaveForm.days <= 0 || uploadingNote}>{uploadingNote ? 'Uploading...' : 'Submit Request'}</Btn>
           </div>
         </Modal>
       )}

@@ -16,7 +16,7 @@ WORKDIR /app
 COPY --from=builder /teampulse .
 COPY --from=builder /app/static/ ./static/
 
-RUN mkdir -p agent
+RUN mkdir -p agent uploads
 
 EXPOSE 8080
 

@@ -965,8 +965,9 @@ export default function AdminView({ section = 'dashboard', onViewEmployee }) {
                         </div>
                         {leave.reason && <div style={{ fontSize: '12px', color: colors.textDim, marginBottom: '2px' }}>Reason: {leave.reason}</div>}
                         {leave.sick_note && (
-                          <div style={{ fontSize: '12px', color: colors.red, marginBottom: '2px', padding: '6px 10px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px', marginTop: '4px' }}>
-                            Sick Note: {leave.sick_note}
+                          <div style={{ marginTop: '4px', padding: '6px 10px', background: 'rgba(239,68,68,0.08)', borderRadius: '6px' }}>
+                            <span style={{ fontSize: '11px', color: colors.red, fontWeight: 600 }}>Doctor's Note:</span>
+                            <img src={leave.sick_note} alt="Sick note" style={{ display: 'block', maxWidth: '250px', maxHeight: '180px', borderRadius: '6px', marginTop: '4px', cursor: 'pointer', border: `1px solid ${colors.borderLight}` }} onClick={() => window.open(leave.sick_note, '_blank')} />
                           </div>
                         )}
                         <div style={{ fontSize: '11px', color: colors.textDimmer, marginTop: '4px' }}>

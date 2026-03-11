@@ -27,10 +27,20 @@ func ClockIn(c echo.Context) error {
 		return c.JSON(http.StatusConflict, map[string]string{"error": "already clocked in"})
 	}
 
+	// Accept client_date from frontend to handle timezone differences
+	var body struct {
+		ClientDate string `json:"client_date"`
+	}
+	c.Bind(&body)
+	date := body.ClientDate
+	if date == "" {
+		date = todayStr()
+	}
+
 	entry := models.TimeEntry{
 		UserID:  userID,
 		ClockIn: time.Now(),
-		Date:    todayStr(),
+		Date:    date,
 	}
 	database.DB.Create(&entry)
 
@@ -153,7 +163,8 @@ func RecordActivityPing(c echo.Context) error {
 	windowTitle := filterWindowTitle(req.WindowTitle)
 
 	startTime := now.Add(-60 * time.Second)
-	date := now.Local().Format("2006-01-02")
+	// Use the TimeEntry's date to stay consistent with the clock-in date
+	date := entry.Date
 
 	segment := models.ActivitySegment{
 		UserID:       userID,

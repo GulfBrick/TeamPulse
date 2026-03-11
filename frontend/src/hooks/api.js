@@ -71,7 +71,11 @@ class ApiClient {
   hardDeleteEmployee(id) { return this.request('DELETE', `/employees/${id}?hard=true`); }
 
   // Clock
-  clockIn() { return this.request('POST', '/clock/in'); }
+  clockIn() {
+    const d = new Date();
+    const client_date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return this.request('POST', '/clock/in', { client_date });
+  }
   clockOut() { return this.request('POST', '/clock/out'); }
   getClockStatus() { return this.request('GET', '/clock/status'); }
   getTimeEntries(date) { return this.request('GET', `/clock/entries${date ? `?date=${date}` : ''}`); }
@@ -137,6 +141,19 @@ class ApiClient {
   getMySegments(date) { return this.request('GET', `/segments/me${date ? `?date=${date}` : ''}`); }
   getAggregations(date) { return this.request('GET', `/aggregations${date ? `?date=${date}` : ''}`); }
   getEmployeeTimeline(id, date) { return this.request('GET', `/employee/${id}/timeline${date ? `?date=${date}` : ''}`); }
+
+  // File upload
+  async uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = {};
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    const res = await fetch(`${API_BASE}/upload`, { method: 'POST', headers, body: formData });
+    if (res.status === 401) { this.logout(); throw new Error('Session expired'); }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data;
+  }
 
   // Leave
   applyLeave(data) { return this.request('POST', '/leave', data); }
