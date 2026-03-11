@@ -221,7 +221,7 @@ func GetSegments(c echo.Context) error {
 	return c.JSON(http.StatusOK, segments)
 }
 
-// ─── GET /api/segments/me?date=YYYY-MM-DD — Employee: get own segments ───
+// ─── GET /api/segments/me?date=YYYY-MM-DD — Employee: get own segments + aggregation ───
 
 func GetMySegments(c echo.Context) error {
 	userID := mw.GetUserID(c)
@@ -235,7 +235,13 @@ func GetMySegments(c echo.Context) error {
 		Order("start_time asc").
 		Find(&segments)
 
-	return c.JSON(http.StatusOK, segments)
+	var agg models.DailyAggregation
+	database.DB.Where("user_id = ? AND date = ?", userID, date).First(&agg)
+
+	return c.JSON(http.StatusOK, models.TimelineResponse{
+		Segments:    segments,
+		Aggregation: &agg,
+	})
 }
 
 // ─── GET /api/aggregations?date=YYYY-MM-DD — Admin: get daily aggregations ───

@@ -12,19 +12,25 @@ export default function EmployeeDetail({ employeeId, onBack }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      api.listEmployees().then(emps => emps.find(e => e.id === employeeId)),
-      api.getEmployeeTimeline(employeeId, date).catch(() => null),
-      api.listKPIs().then(kpis => kpis.filter(k => k.user_id === employeeId)).catch(() => []),
-      api.listStandups(date).then(su => su.filter(s => s.user?.id === employeeId || s.user_id === employeeId)).catch(() => []),
-    ]).then(([emp, tl, k, su]) => {
-      setEmployee(emp || null);
-      setTimeline(tl);
-      setKPIs(k);
-      setStandups(su);
-      setLoading(false);
-    });
+    const load = (showLoader) => {
+      if (showLoader) setLoading(true);
+      Promise.all([
+        api.listEmployees().then(emps => emps.find(e => e.id === employeeId)),
+        api.getEmployeeTimeline(employeeId, date).catch(() => null),
+        api.listKPIs().then(kpis => kpis.filter(k => k.user_id === employeeId)).catch(() => []),
+        api.listStandups(date).then(su => su.filter(s => s.user?.id === employeeId || s.user_id === employeeId)).catch(() => []),
+      ]).then(([emp, tl, k, su]) => {
+        setEmployee(emp || null);
+        setTimeline(tl);
+        setKPIs(k);
+        setStandups(su);
+        setLoading(false);
+      });
+    };
+    load(true);
+    // Auto-refresh every 60s to pick up live activity
+    const iv = setInterval(() => load(false), 60000);
+    return () => clearInterval(iv);
   }, [employeeId, date]);
 
   if (loading) {

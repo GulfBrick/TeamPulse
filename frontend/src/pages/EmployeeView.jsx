@@ -29,6 +29,7 @@ export default function EmployeeView({ section }) {
   const [taskElapsed, setTaskElapsed] = useState(0);
   const [dailyHours, setDailyHours] = useState([]);
   const [mySegments, setMySegments] = useState([]);
+  const [myAggregation, setMyAggregation] = useState(null);
   const [segmentDate, setSegmentDate] = useState(todayStr());
   const [mySessions, setMySessions] = useState([]);
   const [sessionDate, setSessionDate] = useState(todayStr());
@@ -75,17 +76,26 @@ export default function EmployeeView({ section }) {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Load segments for My Timeline
+  // Load segments + aggregation for My Timeline (auto-refresh every 60s while clocked in)
   useEffect(() => {
     if (tab !== 'timeline') return;
-    api.getMySegments(segmentDate).then(setMySegments).catch(() => setMySegments([]));
-  }, [tab, segmentDate]);
+    const load = () => api.getMySegments(segmentDate).then(data => {
+      setMySegments(data.segments || []);
+      setMyAggregation(data.aggregation || null);
+    }).catch(() => { setMySegments([]); setMyAggregation(null); });
+    load();
+    const iv = clockStatus.clocked_in ? setInterval(load, 60000) : null;
+    return () => iv && clearInterval(iv);
+  }, [tab, segmentDate, clockStatus.clocked_in]);
 
-  // Load sessions for My Sessions
+  // Load sessions for My Sessions (auto-refresh every 60s while clocked in)
   useEffect(() => {
     if (tab !== 'sessions') return;
-    api.getMyClockSessions(sessionDate).then(setMySessions).catch(() => setMySessions([]));
-  }, [tab, sessionDate]);
+    const load = () => api.getMyClockSessions(sessionDate).then(setMySessions).catch(() => setMySessions([]));
+    load();
+    const iv = clockStatus.clocked_in ? setInterval(load, 60000) : null;
+    return () => iv && clearInterval(iv);
+  }, [tab, sessionDate, clockStatus.clocked_in]);
 
   // Load leave data
   useEffect(() => {
@@ -495,6 +505,24 @@ export default function EmployeeView({ section }) {
             }} />
           </div>
 
+          {/* Session summary stats */}
+          {(mySessions || []).length > 0 && (() => {
+            const totActive = mySessions.reduce((s, sess) => s + (sess.total_active_seconds || 0), 0);
+            const totIdle = mySessions.reduce((s, sess) => s + (sess.total_idle_seconds || 0), 0);
+            const totClicks = mySessions.reduce((s, sess) => s + (sess.total_mouse_clicks || 0), 0);
+            const totKeys = mySessions.reduce((s, sess) => s + (sess.total_keystrokes || 0), 0);
+            const totalTime = totActive + totIdle;
+            const activePct = totalTime > 0 ? Math.round((totActive / totalTime) * 100) : 0;
+            return (
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                <StatCard label="Active Time" value={formatTime(totActive)} accent={colors.green} />
+                <StatCard label="Idle Time" value={formatTime(totIdle)} accent={colors.yellow} />
+                <StatCard label="Active %" value={`${activePct}%`} accent={activePct >= 80 ? colors.green : activePct >= 50 ? colors.yellow : colors.red} />
+                <StatCard label="Events" value={`${totClicks + totKeys}`} accent={colors.accent} sub={`${mySessions.length} session${mySessions.length !== 1 ? 's' : ''}`} />
+              </div>
+            );
+          })()}
+
           {(mySessions || []).length === 0 ? (
             <EmptyState icon="⏱" message={`No sessions for ${formatDate(sessionDate)}.`} />
           ) : (
@@ -612,6 +640,16 @@ export default function EmployeeView({ section }) {
               borderRadius: '6px', color: colors.textMuted, fontSize: '13px', outline: 'none',
             }} />
           </div>
+
+          {/* Summary stats */}
+          {myAggregation && (
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
+              <StatCard label="Active Time" value={formatTime(myAggregation.total_active_seconds || 0)} accent={colors.green} />
+              <StatCard label="Idle Time" value={formatTime(myAggregation.total_idle_seconds || 0)} accent={colors.yellow} />
+              <StatCard label="Active %" value={`${(myAggregation.total_active_seconds + myAggregation.total_idle_seconds) > 0 ? Math.round((myAggregation.total_active_seconds / (myAggregation.total_active_seconds + myAggregation.total_idle_seconds)) * 100) : 0}%`} accent={colors.accent} />
+              <StatCard label="Events" value={`${(myAggregation.total_mouse_clicks || 0) + (myAggregation.total_keystrokes || 0)}`} accent={colors.accentLight} sub={`${myAggregation.total_mouse_moves || 0} moves`} />
+            </div>
+          )}
 
           <Card style={{ marginBottom: '20px' }}>
             <DayTimeline segments={mySegments} />
