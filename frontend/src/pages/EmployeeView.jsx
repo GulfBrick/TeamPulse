@@ -224,9 +224,11 @@ export default function EmployeeView({ section }) {
   };
 
   const handleClockOutSubmit = async () => {
-    // Submit feedback as a standup, then clock out
-    if (clockOutForm.yesterday || clockOutForm.today) {
-      await api.createStandup(clockOutForm).catch(() => {});
+    // Submit feedback as a standup with client's local date, then clock out
+    if (clockOutForm.yesterday || clockOutForm.today || clockOutForm.blockers) {
+      const d = new Date();
+      const clientDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      await api.createStandup({ ...clockOutForm, date: clientDate }).catch(() => {});
     }
     await api.clockOut();
     setShowClockOutFeedback(false);
